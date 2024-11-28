@@ -1,5 +1,15 @@
 #include "util.h"
 
+typedef struct{
+    char str[TAM], fifo[40];
+    int num;
+    char letra;
+    int res, fd_cli;
+    PEDIDO p;
+    RESPOSTA r;
+    int *pcontinuar;
+}TDATA;
+
 //Globais
 Topico topicos[MAX_TOPICOS]; 
 int num_topicos = 0;
@@ -13,43 +23,16 @@ void listar_usuarios();
 int remover_usuario(const char* nome_usuario, int pid);
 
 
-
-int main(int agrc, char *argv[]){
-    char str[TAM], fifo[40];
-    int fd, res, fd_cli, n;
-    PEDIDO p;
-    RESPOSTA r;
-    fd_set fds;
-    struct timeval tempo;
-
-
-
-    if( access(FIFO_SRV, F_OK ) == 0){
-        printf("[ERRO] Ja existe um servidor!\n");
-        exit(3);
-    }
-
-    printf("INICIO...\n");
-    mkfifo(FIFO_SRV,0600);
-    fd = open(FIFO_SRV,O_RDWR);
+void* processa_admin(void* arg) {
+    TDATA *ptd = (TDATA *)pdata;
+   
 do{
     printf("ADMIN> ");
     fflush(stdout);
+    scanf("%s", str);
+    printf("Comando '%s' introduzido...\n", str );
 
-    //seletc();
-    FD_ZERO(&fds);
-    FD_SET(0, &fds);   //stdin teclado
-    FD_SET(fd,&fds);  // npipe(fd)
-    tempo.tv_sec = 30;
-    tempo.tv_usec = 0;
-
-    n = select( fd + 1, &fds, NULL, NULL, &tempo);
-    if(n > 0){  //ha dados... onde?
-        if(FD_ISSET(0, &fds)){  //stdin teclado
-            scanf("%s", str);
-            printf("Comando '%s' introduzido...\n", str );
-
-            //comando users -- lista users
+     //comando users -- lista users
             if(strcmp(str, "users") == 0){
                 listar_usuarios();
             }
@@ -71,10 +54,19 @@ do{
                             printf("ENVIEI... '%s' (%d)\n", r.str,res);
                         }
                     }
+                *td->pcontinuar = 0;
             }
-        }
-        else if(FD_ISSET(fd, &fds)){  //pide fd
-                res = read (fd, &p, sizeof(PEDIDO) );
+
+}while (*ptd->continuar)
+    printf("Termina thread ADMIN\n");  
+    pthread_exit(NULL);
+}
+
+void* processa_cliente(void *pdata) {
+    
+    
+    do{
+    res = read (fd, &p, sizeof(PEDIDO) );
                 if(res == sizeof(PEDIDO) ){
                     printf("RECEBI... '%s' - %d (%d)\n", p.str, p.user.pid, res);
                     //adicionar users ativos
@@ -106,9 +98,48 @@ do{
                         }
                     }
                 }
-            }
-    }    
-}while ( strcmp(str, "quit") !=0);
+       }while (*ptd->continuar)       
+printf("Termina thread ADMIN\n");  
+pthread_exit(NULL);
+}
+
+
+    
+
+
+int main(int agrc, char *argv[]){
+    
+    int fd;
+    struct timeval tempo;
+    
+
+    if( access(FIFO_SRV, F_OK ) == 0){
+        printf("[ERRO] Ja existe um servidor!\n");
+        exit(3);
+    }
+
+    printf("INICIO...\n");
+    mkfifo(FIFO_SRV,0600);
+    fd = open(FIFO_SRV,O_RDWR);
+
+    pthread_t thread_id[2]; //informação diferente para cada thread
+    int continuar = 1;  //informação igual para todas as thread, passado como ponteiro
+    td[0].pcontinuar = &continuar;
+    td[1].pcontinuar = &continuar;
+    // Cria a thread para o administrador
+    pthread_create(&thread_id[0], NULL, processa_admin, (void*) &td[0]);
+    
+    //Cria uma thread para lidar com o pipe
+    pthread_create(&thread_id[1], NULL, processa_clientes, (void*) &td[1]);
+
+
+    td[0].continuar = 0; // termina a thread
+    pthread_join(thread_id[0], NULL); //espera que termine
+
+    td[1].continuar = 0; // termina a thread
+    pthread_join(thread_id[1], NULL); //espera que termine
+
+
 
     close (fd);
     unlink(FIFO_SRV);
