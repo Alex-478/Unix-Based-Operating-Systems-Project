@@ -18,23 +18,6 @@
         }
     ],
     "version": 4
+
 }
 
-{
-    "configurations": [
-        {
-            "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/**",
-                "/usr/include",
-                "/usr/local/include"
-            ],
-            "defines": [],
-            "compilerPath": "/usr/bin/gcc",
-            "intelliSenseMode": "linux-gcc-x64",
-            "cStandard": "c11",
-            "cppStandard": "c++20"
-        }
-    ],
-    "version": 4
-}
