@@ -12,6 +12,9 @@
 #define FIFO_SRV "/tmp/tubo"
 #define FIFO_CLI "/tmp/f%d"
 #define MAX_USERS 10
+#define MAX_TOPICOS 20
+#define MAX_MSG_PERSISTENTES 5
+#define TAM_MSG 300
 
 typedef struct {
     char nome[TAM]; //nome usuario quando executa o feed
@@ -28,17 +31,11 @@ typedef struct{
         char str[TAM];
 }RESPOSTA;
 
-
-#define MAX_TOPICOS 20
-#define MAX_MSG_PERSISTENTES 5
-#define TAM_MSG 300
-
-
 typedef struct {
     char corpo[TAM_MSG];
     int duracao;        // Em segundos
     time_t timestamp;  // Momento em que a mensagem foi enviada
-} Mensagem;
+} MENSAGEM;
 
 typedef struct {
     char nome[TAM];                     // Nome do tópico
@@ -47,4 +44,4 @@ typedef struct {
     int bloqueado;                      // 1 = bloqueado, 0 = desbloqueado
     int subscritores[10];               // PIDs dos usuários subscritos
     int num_subscritores;               // Número de subscritores
-} Topico;
+} TOPICO;

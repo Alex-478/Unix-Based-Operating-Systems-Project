@@ -8,6 +8,8 @@ USUARIO usuarios[MAX_USERS];  // Array para armazenar usuários
 int num_usuarios = 0;  //posso utilizar uma static na estrutura??
 
 //Declarar Funçoes
+void criarTopico(const char* nome);
+
 int adicionar_usuario(const char* nome_usuario, int pid);
 void listar_usuarios();
 int remover_usuario(const char* nome_usuario, int pid);
@@ -21,7 +23,6 @@ int main(int agrc, char *argv[]){
     RESPOSTA r;
     fd_set fds;
     struct timeval tempo;
-
 
 
     if( access(FIFO_SRV, F_OK ) == 0){
@@ -82,11 +83,17 @@ do{
                     //Fazer funçao ou ficheirasado para tratar comandos
                     adicionar_usuario(p.user.nome, p.user.pid);
 
+                    char tmpTopico[10];
+                    tmpTopico[0] = strtok(p.str," ")   
+                    tmpTopico[1] = strtok(NULL," ");
+
                     //se o comando for subscribe-INCOMPLETO
-                    if (strcmp(strtok(p.str," ") , "subscribe") == 0) { //se o comando for subscribe
-                      char tmpTopico[10];
-                       //tmpTopico = strtok(NULL," ");
-                       printf("Subscrito no topico: '%s'\n", tmpTopico);
+                    if (strcmp(tmpTopico[0], "subscribe") == 0) { //se o comando for subscribe
+                      
+                      criarTopico(tmpTopico[1]);
+                      //adicionar ao utilizador.
+                       
+                       printf("Subscrito no topico: '%s'\n", tmpTopico[1]);
                     }
 
                     //Remover se receber fim do user    
@@ -115,6 +122,35 @@ do{
     printf("FIM\n");
     exit(0);
 }
+
+//Criar Topico
+void criarTopico(const char* nome){
+    if(num_topicos == MAX_TOPICOS){
+         printf("[ERRO] Limite de tópicos atingido.\n");
+            return;
+    }
+            // Verifica se o nome do tópico já existe
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, nome) == 0) {
+            printf("[ERRO] O tópico '%s' já existe.\n", nome);
+            return;
+        }
+    }  
+    topicos[num_topicos].nome == nome 
+    topicos[num_topicos].num_mensagens = 0;
+    topicos[num_topicos].bloqueado = 0;
+    topicos[num_topicos].num_subscritores = 0;
+   
+    num_topicos++;
+    printf("[INFO] Tópico '%s' criado com sucesso.\n", nome);
+    return;
+}
+
+
+//Fazer Funçao Listar Topicos
+//Fazer funçao Adicionar utilizador ao topico
+
+
 
 //Adicionar Usuario
 int adicionar_usuario(const char* nome_usuario, int pid) {
