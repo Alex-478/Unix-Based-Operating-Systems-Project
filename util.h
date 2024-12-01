@@ -23,7 +23,7 @@ void listar_topicos();
 
 int adicionar_usuario(const char* nome_usuario, int pid);
 void listar_usuarios();
-int remover_usuario(const char* nome_usuario, int pid);
+int remover_usuario(const char* nome_usuario);
 
 
 

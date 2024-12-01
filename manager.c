@@ -7,7 +7,7 @@ int num_topicos = 0;
 USUARIO usuarios[MAX_USERS];  // Array para armazenar usuários
 int num_usuarios = 0;  //posso utilizar uma static na estrutura??
 
-int main(int agrc, char *argv[]){
+int main(){
     char str[TAM], fifo[40];
     int fd, res, fd_cli, n;
     PEDIDO p;
@@ -51,6 +51,9 @@ do{
                  listar_topicos();
             }
 
+            if(strcmp(str, "remove") == 0){
+                 //remover utilizador pedido.
+            }
             //comando quit -- termina todos os clientes
             if(strcmp(str, "quit") == 0){ 
                 for(int i = 0; i<MAX_USERS; ++i){ 
@@ -69,19 +72,16 @@ do{
                 res = read (fd, &p, sizeof(PEDIDO) );
                 if(res == sizeof(PEDIDO) ){
                     printf("RECEBI... '%s' - %d (%d)\n", p.str, p.user.pid, res);
-                    //adicionar users ativos
-                    //usar flag para so adocionar quando conecta?? S
-                    //Fazer funçao ou ficheirasado para tratar comandos
-                    adicionar_usuario(p.user.nome, p.user.pid);
-
+                    
+                    //Tratar mensagem Cliente
+                    
                     char* tmpTopico[10];
-                    p.str[strcspn(p.str, "\n")] = '\0';  // Remove o '\n' se presente
-
-                    //printf("Palavras: '%s'\n", p.str);  // Debug
                     tmpTopico[0] = strtok(p.str," ");
-                    //printf("Primeira palavra: '%s'\n", tmpTopico[0]);  // Debug
                     tmpTopico[1] = strtok(NULL," ");
-                    //printf("Segunda palavra: '%s'\n", tmpTopico[1]);  // Debug
+
+                    if (strcmp(tmpTopico[0], "registar") == 0) {
+                        adicionar_usuario(p.user.nome, p.user.pid);
+                        }
 
                     //se o comando for subscribe-INCOMPLETO
                     if (strcmp(tmpTopico[0], "subscribe") == 0) { //se o comando for subscribe
@@ -90,9 +90,10 @@ do{
                     }
 
                     //Remover se receber fim do user    
-                    if(strcmp(p.str, "fim") == 0){
-                        remover_usuario(p.user.nome,p.user.pid);
-                    }else{  //envia para todos os clientes
+                    if(strcmp(tmpTopico[0], "fim") == 0){
+                        remover_usuario(p.user.nome);
+                    }
+                    /*else{  //envia para todos os clientes o que tiver recebido de um cliente
                         for(int i = 0; i<num_usuarios; ++i){ 
                             if(usuarios[i].ativo){
                                 sprintf(fifo, FIFO_CLI, usuarios[i].pid);
@@ -104,7 +105,7 @@ do{
                     
                             }
                         }
-                    }
+                    }*/
                 }
             }
     }    
@@ -115,10 +116,6 @@ do{
     printf("FIM\n");
     exit(0);
 }
-
-
-
-
 
 
 //Subscreve Topico
@@ -154,7 +151,6 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
     return;
 
 }
-
 //Criar Topico
 void criarTopico(const char* nome){
     if(num_topicos == MAX_TOPICOS){
@@ -180,8 +176,6 @@ void criarTopico(const char* nome){
     
     return;
 }
-
-
 //Fazer Funçao Listar Topicos
 void listar_topicos() {
     printf("=== Lista de Tópicos ===\n");
@@ -198,9 +192,13 @@ void listar_topicos() {
         printf("-----------------------\n");
     }
 }
-
 //Adicionar Usuario
 int adicionar_usuario(const char* nome_usuario, int pid) {
+    int fd_cli, res;
+    char fifo[40];
+    RESPOSTA r;
+
+
     //verifica se o num de usarios atingio o MAX
     if (num_usuarios >= MAX_USERS) {
         printf("[ERRO] Limite de usuários atingido.\n");
@@ -214,18 +212,41 @@ int adicionar_usuario(const char* nome_usuario, int pid) {
             return -1;
         }
     }
-    //Adiciona a primeira vaga inativo
-    for (int i = 0; i < MAX_USERS; i++) { 
+
+    //Posso usar o valor de num_usuarios diretamente
+        strcpy(usuarios[num_usuarios].nome, nome_usuario);
+            usuarios[num_usuarios].pid = pid;
+            usuarios[num_usuarios].ativo = 1;
+            num_usuarios++;
+
+     //Adiciona a primeira vaga inativo       
+    /*for (int i = 0; i < MAX_USERS; i++) { 
         if (!usuarios[i].ativo) {
             strcpy(usuarios[i].nome, nome_usuario);
             usuarios[i].pid = pid;
             usuarios[i].ativo = 1;
             num_usuarios++;
             printf("[INFO] Usuário '%s' com PID %d adicionado.\n", nome_usuario, pid);
-            return 0;
+            //return 0;
         }
-    }
-    return -1;
+    } */
+
+    for (int j = 0; j < num_usuarios; j++){
+                if (usuarios[j].ativo){
+                    sprintf(fifo, FIFO_CLI, usuarios[j].pid);  // Formata o nome do pipe do cliente
+                    fd_cli = open(fifo, O_WRONLY);             // Abre o pipe para o cliente
+                    if (fd_cli != -1) {
+                        snprintf(r.str, sizeof(r.str), "O usuário '%s' conectou.", nome_usuario);
+                        res = write(fd_cli, &r, sizeof(RESPOSTA));  // Envia a mensagem
+                        close(fd_cli);
+                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, usuarios[j].nome, r.str);
+                    } else {
+                        printf("[ERRO] Não foi possível abrir o pipe para o %s.\n", usuarios[j].nome);
+                    }
+                }
+            }
+
+    return 0;
 }
 //Listar Usuarios
 void listar_usuarios() {
@@ -240,14 +261,40 @@ void listar_usuarios() {
     }
 }
 //Remover Usuario
-int remover_usuario(const char* nome_usuario, int pid) {
-    //Verifica nome e ativo para 0
-      for (int i = 0; i < MAX_USERS; i++) {
-        if (strcmp(usuarios[i].nome, nome_usuario) == 0 && usuarios[i].ativo) {  //podemos verificar se esta ativo usuarios[i].ativo &&
+int remover_usuario(const char* nome_usuario) {
+    int fd_cli, res;
+    char fifo[40];
+    RESPOSTA r;
+    //Verifica se esta registado
+    for (int i = 0; i < num_usuarios; i++) {
+        if (usuarios[i].ativo && strcmp(usuarios[i].nome, nome_usuario) == 0) {
             usuarios[i].ativo = 0;
-            printf("[INFO] Usuário com PID %d removido.\n", pid);
-            return 0;
+            usuarios[i].pid = 0;
+            num_usuarios--;  
+            printf("[INFO] Usuário '%s' removido.\n", nome_usuario);
+
+
+            //Informar todos os users conectados sobre a desconexao
+            for (int j = 0; j < num_usuarios; j++){
+                if (usuarios[j].ativo){
+                    sprintf(fifo, FIFO_CLI, usuarios[j].pid);  // Formata o nome do pipe do cliente
+                    fd_cli = open(fifo, O_WRONLY);             // Abre o pipe para o cliente
+                    if (fd_cli != -1) {
+                        snprintf(r.str, sizeof(r.str), "O usuário '%s' desconectou.", nome_usuario);
+                        res = write(fd_cli, &r, sizeof(RESPOSTA));  // Envia a mensagem
+                        close(fd_cli);
+                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, usuarios[j].nome, r.str);
+                    } else {
+                        printf("[ERRO] Não foi possível abrir o pipe para o %s.\n", usuarios[j].nome);
+                    }
+                }
+            }
+
+            return 0; 
         }
-      }
-    return -1;
+    }
+
+    
+    printf("[ERRO] Usuário '%s' não encontrado.\n", nome_usuario);
+    return -1; 
 }

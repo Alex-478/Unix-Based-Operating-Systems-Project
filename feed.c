@@ -1,16 +1,14 @@
 #include "util.h"
 
 int main(int argc, char *argv[]){
-    char str[TAM], temp[10];
+    char str[TAM];
+    //char temp[10];
     int fd, res;
     PEDIDO p;
     RESPOSTA r;
     char fifo[40];
     int fd_cli, n;
     fd_set fds;
-
-    char comando[TAM];
-    USUARIO user;
 
     // Verificar se o nome do usuário foi passado como argumento
     if (argc != 2) {
@@ -32,8 +30,8 @@ int main(int argc, char *argv[]){
 
     // Enviar o nome do usuário ao manager
     strcpy(p.user.nome, argv[1]);
+    strcpy(p.str, "registar");
     p.user.pid = getpid();
-    p.str[0] = 'A';
     res = write(fd, &p, sizeof(PEDIDO));
     if (res != sizeof(PEDIDO)) {
         printf("[ERRO] Falha ao enviar nome de usuário ao servidor.\n");
@@ -46,7 +44,7 @@ int main(int argc, char *argv[]){
    
    //ciclo ler teclado/ler pipe
     do{
-        printf("USER> ");
+        printf("%s> ", p.user.nome);
         fflush(stdout);  
         // select 
         FD_ZERO(&fds);
@@ -63,7 +61,8 @@ int main(int argc, char *argv[]){
             if(FD_ISSET(0, &fds)){      //select teclado
                 //scanf("%s",str);
                 fgets(str, sizeof(str), stdin);
-                printf("Dbug 1: '%s'\n", str);  // Debug ?? faz um \n a mais??
+                str[strcspn(str, "\n")] = '\0';  // Remove o '\n' se presente
+                //printf("Dbug 1: '%s'\n", str);  // Debug ?? faz um \n a mais??
                 strcpy(p.str, str);
         
  
@@ -85,3 +84,6 @@ int main(int argc, char *argv[]){
     printf("FIM\n");
     exit(0);
 }
+
+
+                    
