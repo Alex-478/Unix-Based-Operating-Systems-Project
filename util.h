@@ -8,13 +8,25 @@
 #include <sys/select.h>
 #include <string.h>
 
-#define TAM 20
+#define TAM 30
 #define FIFO_SRV "/tmp/tubo"
 #define FIFO_CLI "/tmp/f%d"
 #define MAX_USERS 10
 #define MAX_TOPICOS 20
 #define MAX_MSG_PERSISTENTES 5
 #define TAM_MSG 300
+
+//Declarar Funçoes
+void subscreveTopico(const char* nome_topico, int pid_usuario);
+void criarTopico(const char* nome);
+void listar_topicos();
+
+int adicionar_usuario(const char* nome_usuario, int pid);
+void listar_usuarios();
+int remover_usuario(const char* nome_usuario, int pid);
+
+
+
 
 typedef struct {
     char nome[TAM]; //nome usuario quando executa o feed
@@ -39,9 +51,9 @@ typedef struct {
 
 typedef struct {
     char nome[TAM];                     // Nome do tópico
-    Mensagem mensagens[MAX_MSG_PERSISTENTES];  // Mensagens persistentes
+    MENSAGEM mensagens[MAX_MSG_PERSISTENTES];  // Mensagens persistentes
     int num_mensagens;                  // Quantidade de mensagens armazenadas
     int bloqueado;                      // 1 = bloqueado, 0 = desbloqueado
-    int subscritores[10];               // PIDs dos usuários subscritos
+    int subscritores[MAX_USERS];               // PIDs dos usuários subscritos
     int num_subscritores;               // Número de subscritores
 } TOPICO;

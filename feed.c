@@ -32,7 +32,8 @@ int main(int argc, char *argv[]){
 
     // Enviar o nome do usuário ao manager
     strcpy(p.user.nome, argv[1]);
-    p.user.pid = getpid();   
+    p.user.pid = getpid();
+    p.str[0] = 'A';
     res = write(fd, &p, sizeof(PEDIDO));
     if (res != sizeof(PEDIDO)) {
         printf("[ERRO] Falha ao enviar nome de usuário ao servidor.\n");
@@ -60,11 +61,15 @@ int main(int argc, char *argv[]){
         }
         else if(n>0){ //ha dados.. onde?
             if(FD_ISSET(0, &fds)){      //select teclado
-                scanf("%s",str);
-                strcpy(p.str, str); 
+                //scanf("%s",str);
+                fgets(str, sizeof(str), stdin);
+                printf("Dbug 1: '%s'\n", str);  // Debug ?? faz um \n a mais??
+                strcpy(p.str, str);
+        
+ 
                 res = write (fd, &p,sizeof(PEDIDO)); //envia para o manager
                 if(res == sizeof(PEDIDO) ){
-                    printf("ENVIEI... '%s' (%d)\n", p.str, res);
+                    printf("ENVIEI... '%s' (%d)\n", p.str, res);  //Debug
                 }
                 
             }

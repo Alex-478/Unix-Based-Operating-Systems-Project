@@ -1,20 +1,11 @@
 #include "util.h"
 
 //Globais
-Topico topicos[MAX_TOPICOS]; 
+TOPICO topicos[MAX_TOPICOS]; 
 int num_topicos = 0;
 
 USUARIO usuarios[MAX_USERS];  // Array para armazenar usuários
 int num_usuarios = 0;  //posso utilizar uma static na estrutura??
-
-//Declarar Funçoes
-void criarTopico(const char* nome);
-
-int adicionar_usuario(const char* nome_usuario, int pid);
-void listar_usuarios();
-int remover_usuario(const char* nome_usuario, int pid);
-
-
 
 int main(int agrc, char *argv[]){
     char str[TAM], fifo[40];
@@ -57,7 +48,7 @@ do{
             
             //comando topics -- lista topicos
             if(strcmp(str, "topics") == 0){
-                 printf("Ainda nao implementado");
+                 listar_topicos();
             }
 
             //comando quit -- termina todos os clientes
@@ -83,29 +74,31 @@ do{
                     //Fazer funçao ou ficheirasado para tratar comandos
                     adicionar_usuario(p.user.nome, p.user.pid);
 
-                    char tmpTopico[10];
-                    tmpTopico[0] = strtok(p.str," ")   
+                    char* tmpTopico[10];
+                    p.str[strcspn(p.str, "\n")] = '\0';  // Remove o '\n' se presente
+
+                    //printf("Palavras: '%s'\n", p.str);  // Debug
+                    tmpTopico[0] = strtok(p.str," ");
+                    //printf("Primeira palavra: '%s'\n", tmpTopico[0]);  // Debug
                     tmpTopico[1] = strtok(NULL," ");
+                    //printf("Segunda palavra: '%s'\n", tmpTopico[1]);  // Debug
 
                     //se o comando for subscribe-INCOMPLETO
                     if (strcmp(tmpTopico[0], "subscribe") == 0) { //se o comando for subscribe
-                      
-                      criarTopico(tmpTopico[1]);
-                      //adicionar ao utilizador.
-                       
-                       printf("Subscrito no topico: '%s'\n", tmpTopico[1]);
+                        criarTopico(tmpTopico[1]);
+                        subscreveTopico(tmpTopico[1], p.user.pid);
                     }
 
                     //Remover se receber fim do user    
                     if(strcmp(p.str, "fim") == 0){
                         remover_usuario(p.user.nome,p.user.pid);
                     }else{  //envia para todos os clientes
-                        for(int i = 0; i<MAX_USERS; ++i){ 
+                        for(int i = 0; i<num_usuarios; ++i){ 
                             if(usuarios[i].ativo){
                                 sprintf(fifo, FIFO_CLI, usuarios[i].pid);
                                 fd_cli = open(fifo, O_WRONLY);
                                 strcpy(r.str, p.str);
-                                res = write( fd_cli, &r, sizeof(RESPOSTA));
+                                res = write( fd_cli, &r, sizeof(RESPOSTA));  // res=-1 ??
                                 close(fd_cli);
                                 printf("ENVIEI... '%s' (%d)\n", r.str,res);
                     
@@ -123,34 +116,88 @@ do{
     exit(0);
 }
 
+
+
+
+
+
+//Subscreve Topico
+void subscreveTopico(const char* nome_topico, int pid_usuario){
+    // Verifica se o tópico existe
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, nome_topico) == 0) {
+            // Verifica se o usuário já está subscrito
+            for (int j = 0; j < topicos[i].num_subscritores; j++) {
+                if (topicos[i].subscritores[j] == pid_usuario) {
+                    printf("[INFO] Usuário (PID: %d) já está subscrito no tópico '%s'.\n", pid_usuario, nome_topico);
+                    return;
+                }
+            }
+
+            // Verifica se há espaço para mais subscritores
+            if (topicos[i].num_subscritores >= MAX_USERS) {
+                printf("[ERRO] O tópico '%s' atingiu o limite de subscritores.\n", nome_topico);
+                return; // Limite atingido
+            }
+            
+            // Adiciona o usuário à lista de subscritores
+            topicos[i].subscritores[topicos[i].num_subscritores] = pid_usuario;
+            topicos[i].num_subscritores++;
+            printf("[INFO] Usuário (PID: %d) subscrito ao tópico '%s' com sucesso.\n", pid_usuario, nome_topico);
+            return; // Sucesso
+
+        }
+    }
+
+    // Se o tópico não foi encontrado
+    printf("[ERRO] O tópico '%s' não existe.\n", nome_topico);
+    return;
+
+}
+
 //Criar Topico
 void criarTopico(const char* nome){
     if(num_topicos == MAX_TOPICOS){
          printf("[ERRO] Limite de tópicos atingido.\n");
             return;
     }
-            // Verifica se o nome do tópico já existe
+    // Verifica se o nome do tópico já existe ?? acho que nao ta funcional
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, nome) == 0) {
             printf("[ERRO] O tópico '%s' já existe.\n", nome);
             return;
         }
     }  
-    topicos[num_topicos].nome == nome 
+    //printf("[DEBUG] Variavel nome com: '%s'\n", nome);   
+    strcpy(topicos[num_topicos].nome, nome);
+    //printf("[DEBUG] Tópico '%s' criado com sucesso com num '%d'.\n", topicos[num_topicos].nome, num_topicos);
     topicos[num_topicos].num_mensagens = 0;
     topicos[num_topicos].bloqueado = 0;
     topicos[num_topicos].num_subscritores = 0;
-   
+
+    printf("[INFO] Tópico '%s' criado com sucesso.\n", topicos[num_topicos].nome);
     num_topicos++;
-    printf("[INFO] Tópico '%s' criado com sucesso.\n", nome);
+    
     return;
 }
 
 
 //Fazer Funçao Listar Topicos
-//Fazer funçao Adicionar utilizador ao topico
+void listar_topicos() {
+    printf("=== Lista de Tópicos ===\n");
+    if (num_topicos == 0) {
+        printf("Nenhum tópico disponível.\n");
+        return;
+    }
 
-
+    for (int i = 0; i < num_topicos; i++) {
+        printf("Tópico: %s\n", topicos[i].nome);
+        printf("  Mensagens armazenadas: %d\n", topicos[i].num_mensagens);
+        printf("  Subscritores: %d\n", topicos[i].num_subscritores);
+        printf("  Estado: %s\n", topicos[i].bloqueado ? "Bloqueado" : "Desbloqueado");
+        printf("-----------------------\n");
+    }
+}
 
 //Adicionar Usuario
 int adicionar_usuario(const char* nome_usuario, int pid) {
