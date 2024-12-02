@@ -38,21 +38,34 @@ do{
     n = select( fd + 1, &fds, NULL, NULL, &tempo);
     if(n > 0){  //ha dados... onde?
         if(FD_ISSET(0, &fds)){  //stdin teclado
-            scanf("%s", str);
-            printf("Comando '%s' introduzido...\n", str );
+            //scanf("%s", str);
+            fgets(str, sizeof(str), stdin);
+            str[strcspn(str, "\n")] = '\0'; 
+            char* tmpWords[10]= {NULL}; 
+            tmpWords[0] = strtok(str," ");
+            tmpWords[1] = strtok(NULL," ");
 
             //comando users -- lista users
-            if(strcmp(str, "users") == 0){
+            if(strcmp(tmpWords[0], "users") == 0){
                 listar_usuarios();
             }
             
             //comando topics -- lista topicos
-            if(strcmp(str, "topics") == 0){
-                 listar_topicos();
+            if(strcmp(tmpWords[0], "topics") == 0){
+                listar_topicos();
             }
 
-            if(strcmp(str, "remove") == 0){
-                 //remover utilizador pedido.
+            if(strcmp(tmpWords[0], "remove") == 0){
+                remover_usuario(tmpWords[1]);
+            }
+            if(strcmp(tmpWords[0], "lock") == 0){
+                bloquear_topico(tmpWords[1]);
+            }
+            if(strcmp(tmpWords[0], "unlock") == 0){
+                desbloquear_topico(tmpWords[1]);
+            }
+            if(strcmp(tmpWords[0], "show") == 0){
+                //fazer show dos topics
             }
             //comando quit -- termina todos os clientes
             if(strcmp(str, "quit") == 0){ 
@@ -63,7 +76,8 @@ do{
                             strcpy(r.str, "fim");
                             res = write( fd_cli, &r, sizeof(RESPOSTA));
                             close(fd_cli);
-                            printf("ENVIEI... '%s' (%d)\n", r.str,res);
+                            //printf("ENVIEI... '%s' (%d)\n", r.str,res);
+                            printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, usuarios[i].nome, r.str);
                         }
                     }
             }
@@ -75,21 +89,28 @@ do{
                     
                     //Tratar mensagem Cliente
                     
-                    char* tmpTopico[10];
+                    char* tmpTopico[10]= {NULL}; 
                     tmpTopico[0] = strtok(p.str," ");
                     tmpTopico[1] = strtok(NULL," ");
+
+                    /*int i = 0;
+                    char* token = strtok(p.str, " ");
+                    while (token != NULL && i < 10) {
+                            strcpy(tmpTopico[i], token);
+                            token = strtok(NULL, " ");
+                            i++;
+                    }*/
 
                     if (strcmp(tmpTopico[0], "registar") == 0) {
                         adicionar_usuario(p.user.nome, p.user.pid);
                         }
-
-                    //se o comando for subscribe-INCOMPLETO
-                    if (strcmp(tmpTopico[0], "subscribe") == 0) { //se o comando for subscribe
+                    if (strcmp(tmpTopico[0], "subscribe") == 0) { //?? se o comando for subscribe sem 2ªpalavra da Falta de Segmentação
                         criarTopico(tmpTopico[1]);
                         subscreveTopico(tmpTopico[1], p.user.pid);
                     }
-
-                    //Remover se receber fim do user    
+                     if (strcmp(tmpTopico[0], "unsubscribe") == 0) { 
+                        remove_subscricao_topico(tmpTopico[1], p.user.pid);
+                    }  
                     if(strcmp(tmpTopico[0], "fim") == 0){
                         remover_usuario(p.user.nome);
                     }
@@ -117,7 +138,103 @@ do{
     exit(0);
 }
 
+//Desbloquear Topico
+void desbloquear_topico(const char* nome_topico){
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, nome_topico) == 0) {
+            if(!topicos[i].bloqueado){
+                printf("[INFO] O tópico '%s' já se encontra desbloqueado.\n", nome_topico);
+            }
+            if(topicos[i].bloqueado){
+                topicos[i].bloqueado = 0;
+                printf("[INFO] O tópico '%s' foi desbloqueado.\n", nome_topico);
+            }
 
+        }
+    }
+    return;
+}
+
+
+
+//Bloquear Topico
+void bloquear_topico(const char* nome_topico){
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, nome_topico) == 0) {
+            if(topicos[i].bloqueado){
+                printf("[INFO] O tópico '%s' já se encontra bloqueado.\n", nome_topico);
+            }
+            if(!topicos[i].bloqueado){
+                topicos[i].bloqueado = 1;
+                printf("[INFO] O tópico '%s' foi bloqueado.\n", nome_topico);
+            }
+
+        }
+    }
+    return;
+}
+//Eliminar Topico Criado
+void eliminar_topico(const char* nome_topico) {
+   
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, nome_topico) == 0) {  // Verifica se o tópico existe
+            
+            // Verifica se há mensagens persistentes
+            if (topicos[i].num_mensagens > 0) {  
+                printf("[INFO] O tópico '%s' não pode ser removido porque contém mensagens persistentes.\n", nome_topico);
+                return;
+            }
+
+            // Verifica se há subscritores
+            if (topicos[i].num_subscritores > 0) {
+                printf("[INFO] O tópico '%s' não pode ser removido porque ainda tem subscritores.\n", nome_topico);
+                return;
+            }
+
+            // Desloca os topicos existentes
+            for (int j = i; j < num_topicos - 1; j++) {
+                topicos[j] = topicos[j + 1];
+            }
+
+            num_topicos--; 
+            printf("[INFO] Tópico '%s' removido com sucesso.\n", nome_topico);
+            return;
+        }
+    }
+
+    printf("[ERRO] O tópico '%s' não existe.\n", nome_topico);
+    return;
+}
+//remove subscrição Topico
+void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
+    // Verifica se o tópico existe
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, nome_topico) == 0) {
+            // Verifica se o usuário está subscrito
+            for (int j = 0; j < topicos[i].num_subscritores; j++) {
+                if (topicos[i].subscritores[j] == pid_usuario) {
+                    // Remove o subscritor deslocando os elementos para preencher o espaço vazio
+                    for (int k = j; k < topicos[i].num_subscritores - 1; k++) {
+                        topicos[i].subscritores[k] = topicos[i].subscritores[k + 1];
+                    }
+                    
+                    // Decrementa o número de subscritores
+                    topicos[i].num_subscritores--;
+                    printf("[INFO] Usuário (PID: %d) removido do tópico '%s'.\n", pid_usuario, nome_topico);
+                    //Elimina topico se ja tiver sem users e msgs
+                    eliminar_topico(nome_topico); 
+                    return;
+                }
+            }
+
+            // Se o usuário não está subscrito
+            printf("[ERRO] Usuário (PID: %d) não está subscrito no tópico '%s'.\n", pid_usuario, nome_topico);
+            return;
+        }
+    }
+    printf("[ERRO] O tópico '%s' não existe.\n", nome_topico);
+    return;
+}
 //Subscreve Topico
 void subscreveTopico(const char* nome_topico, int pid_usuario){
     // Verifica se o tópico existe
@@ -265,15 +382,24 @@ int remover_usuario(const char* nome_usuario) {
     int fd_cli, res;
     char fifo[40];
     RESPOSTA r;
+
     //Verifica se esta registado
     for (int i = 0; i < num_usuarios; i++) {
         if (usuarios[i].ativo && strcmp(usuarios[i].nome, nome_usuario) == 0) {
+            //Enviar fim para terminar user
+            sprintf(fifo, FIFO_CLI, usuarios[i].pid);
+            fd_cli = open(fifo, O_WRONLY);
+            strcpy(r.str, "fim");
+            res = write( fd_cli, &r, sizeof(RESPOSTA));
+            close(fd_cli);
+            //printf("ENVIEI... '%s' (%d)\n", r.str,res);
+            printf("[INFO] Disconectar: '%s'\n", usuarios[i].nome);  
+            //remover usuario
             usuarios[i].ativo = 0;
             usuarios[i].pid = 0;
-            num_usuarios--;  
-            printf("[INFO] Usuário '%s' removido.\n", nome_usuario);
-
-
+            num_usuarios--;    
+            printf("[INFO] Usuário '%s' removido.\n", nome_usuario);       
+    
             //Informar todos os users conectados sobre a desconexao
             for (int j = 0; j < num_usuarios; j++){
                 if (usuarios[j].ativo){
@@ -289,12 +415,9 @@ int remover_usuario(const char* nome_usuario) {
                     }
                 }
             }
-
             return 0; 
         }
     }
-
-    
     printf("[ERRO] Usuário '%s' não encontrado.\n", nome_usuario);
-    return -1; 
+    return 0;
 }

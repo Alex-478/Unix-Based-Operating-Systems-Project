@@ -17,6 +17,10 @@
 #define TAM_MSG 300
 
 //Declarar Funçoes
+void bloquear_topico(const char* nome_topico);
+void desbloquear_topico(const char* nome_topico);
+void eliminar_topico(const char* nome_topico);
+void remove_subscricao_topico(const char* nome_topico, int pid_usuario);
 void subscreveTopico(const char* nome_topico, int pid_usuario);
 void criarTopico(const char* nome);
 void listar_topicos();
