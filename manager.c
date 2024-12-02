@@ -49,23 +49,25 @@ do{
             if(strcmp(tmpWords[0], "users") == 0){
                 listar_usuarios();
             }
-            
             //comando topics -- lista topicos
             if(strcmp(tmpWords[0], "topics") == 0){
                 listar_topicos();
             }
-
+            //comando remove "user"
             if(strcmp(tmpWords[0], "remove") == 0){
                 remover_usuario(tmpWords[1]);
             }
+            //comando lock "topico"
             if(strcmp(tmpWords[0], "lock") == 0){
                 bloquear_topico(tmpWords[1]);
             }
+            //comando unlock "topico"
             if(strcmp(tmpWords[0], "unlock") == 0){
                 desbloquear_topico(tmpWords[1]);
             }
+            //comando show "topico"
             if(strcmp(tmpWords[0], "show") == 0){
-                //fazer show dos topics
+                listar_mensagens_topico(tmpWords[1]); //?? testar
             }
             //comando quit -- termina todos os clientes
             if(strcmp(str, "quit") == 0){ 
@@ -100,7 +102,12 @@ do{
                             token = strtok(NULL, " ");
                             i++;
                     }*/
-
+                      if (strcmp(tmpTopico[0], "topics") == 0) {
+                        sprintf(fifo, FIFO_CLI, p.user.pid);
+                        fd_cli = open(fifo, O_WRONLY);
+                        listar_topicos_para_cliente(fd_cli);
+                        close(fd_cli);
+                        }
                     if (strcmp(tmpTopico[0], "registar") == 0) {
                         adicionar_usuario(p.user.nome, p.user.pid);
                         }
@@ -138,6 +145,64 @@ do{
     exit(0);
 }
 
+void listar_topicos_para_cliente(int fd_cliente) {
+    char buffer[1024] = ""; 
+    char estado[15];  
+    RESPOSTA resposta;     
+
+    if (num_topicos == 0) {
+        //snprintf(buffer, sizeof(buffer), "[INFO] Não existem tópicos no momento.\n");
+        //write(fd_cli, buffer, strlen(buffer)); // Envia a mensagem ao cliente
+
+        snprintf(resposta.str, sizeof(resposta.str), "[INFO] Não existem tópicos no momento.\n");
+        write(fd_cliente, &resposta, sizeof(RESPOSTA)); 
+        return;
+    }
+
+    for (int i = 0; i < num_topicos; i++) {
+        strcpy(estado, topicos[i].bloqueado ? "bloqueado" : "desbloqueado");
+
+        // Concatena as informações no buffer
+        /*snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer),
+                 "Tópico: %s | Mensagens: %d | Estado: %s\n",
+                 topicos[i].nome, topicos[i].num_mensagens, estado);*/
+
+        snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer),
+                 "\nTópico: %s | Mensagens: %d | Estado: %s\n",
+                 topicos[i].nome, topicos[i].num_mensagens, estado);
+
+
+       
+        if (strlen(buffer) >= sizeof(resposta.str) - 1 || i == num_topicos - 1) {
+            strcpy(resposta.str, buffer, sizeof(resposta.str) - 1);
+            resposta.str[sizeof(resposta.str) - 1] = '\0'
+            write(fd_cliente, &resposta, sizeof(RESPOSTA));
+            buffer[0] = '\0'; // Limpa o buffer
+        }
+    }
+    //write(fd_cli, buffer, strlen(buffer));
+    write(fd_cliente, &resposta, sizeof(RESPOSTA));
+}
+void listar_mensagens_topico(const char* nome_topico) {
+    // Verifica se o tópico existe
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, nome_topico) == 0) {
+            if (topicos[i].num_mensagens == 0) {
+                printf("[INFO] O tópico '%s' não possui mensagens persistentes.\n", nome_topico);
+                return;
+            }
+            // Lista as mensagens do tópico
+            printf("=== Mensagens do Tópico '%s' ===\n", nome_topico);
+            for (int j = 0; j < topicos[i].num_mensagens; j++) {
+                printf("[%d] %s\n", j + 1, topicos[i].mensagens[j].corpo);
+            }
+            return;
+        }
+    }
+
+    // Se o tópico não foi encontrado
+    printf("[ERRO] O tópico '%s' não existe.\n", nome_topico);
+}
 //Desbloquear Topico
 void desbloquear_topico(const char* nome_topico){
     for (int i = 0; i < num_topicos; i++) {
@@ -154,9 +219,6 @@ void desbloquear_topico(const char* nome_topico){
     }
     return;
 }
-
-
-
 //Bloquear Topico
 void bloquear_topico(const char* nome_topico){
     for (int i = 0; i < num_topicos; i++) {

@@ -17,6 +17,8 @@
 #define TAM_MSG 300
 
 //Declarar Funçoes
+void listar_topicos_para_cliente(int fd_cliente);
+void listar_mensagens_topico(const char* nome_topico);
 void bloquear_topico(const char* nome_topico);
 void desbloquear_topico(const char* nome_topico);
 void eliminar_topico(const char* nome_topico);
@@ -44,7 +46,7 @@ typedef struct{
 }PEDIDO;
 
 typedef struct{
-        char str[TAM];
+        char str[1024]; //TAM
 }RESPOSTA;
 
 typedef struct {
