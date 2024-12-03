@@ -1,4 +1,13 @@
 #include "util.h"
+/*
+Trocar pid_usuario por pid_user
+funçao para receber msg cliente
+Fazer sistema de tempo
+
+
+
+*/
+
 
 int main(int argc, char *argv[]){
     char str[TAM];
@@ -17,7 +26,7 @@ int main(int argc, char *argv[]){
     }
     
 
-    printf("INICIO...\n");
+    printf("[INFO] Feed Iniciado. \n");
     if(access(FIFO_SRV, F_OK) !=0 ){
         printf("[ERRO] Servidor nao esta a correr!\n");
         exit(3);
@@ -40,7 +49,7 @@ int main(int argc, char *argv[]){
         //unlink(fifo); ??
         exit(3);
     }
-    printf("Usuário %s conectado ao servidor.\n", p.user.nome);
+    printf("[INFO] Usuário %s conectado ao servidor.\n", p.user.nome);
    
    //ciclo ler teclado/ler pipe
     do{
@@ -74,7 +83,7 @@ int main(int argc, char *argv[]){
             }
             else if(FD_ISSET(fd_cli, &fds)){        //select pipe
                 res = read(fd_cli, &r, sizeof(RESPOSTA));
-                printf("RECEBI... '%s' (%d)\n", r.str, res);
+                printf("RECEBI...\n '%s' (%d)\n", r.str, res);
             }
         }     
     }while(strcmp(r.str, "fim")!=0 && strcmp(p.str,"fim")!=0 ); //adicionar o fim do teclado do user

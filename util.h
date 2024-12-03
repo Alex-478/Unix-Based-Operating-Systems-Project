@@ -18,13 +18,18 @@
 #define TAM_MSG 300
 
 typedef struct {
+    int *pfd;
+    int *pcontinuar; 
+} TDATA;
+
+typedef struct {
     char nome[TAM]; //nome usuario quando executa o feed
     int pid;    // PID do usuário
     int ativo;  // Flag: 1 = ativo, 0 = não ativo
 } UTILIZADOR;
 
 typedef struct{
-        char str[TAM];
+        char str[TAM_MSG];
         UTILIZADOR user;
 }PEDIDO;
 
@@ -43,11 +48,23 @@ typedef struct {
     MENSAGEM mensagens[MAX_MSG_PERSISTENTES];  // Mensagens persistentes
     int num_mensagens;                  // Quantidade de mensagens armazenadas
     int bloqueado;                      // 1 = bloqueado, 0 = desbloqueado
-    int subscritores[MAX_USERS];               // PIDs dos usuários subscritos
+    int subscritores[MAX_USERS];        // PIDs dos usuários subscritos
     int num_subscritores;               // Número de subscritores
 } TOPICO;
 
+//Globais
+TOPICO topicos[MAX_TOPICOS]; 
+int num_topicos = 0;
+
+UTILIZADOR utilizadores[MAX_USERS];  // Array para armazenar usuários
+int num_users = 0;  //posso utilizar uma static na estrutura??
+
+
+
 //Declarar Funçoes
+
+//Mensagens
+void enviar_mensagem_cliente(int pid, const char* mensagem);
 
 //Threads
 void *thread_le_pipe(void *pdata);

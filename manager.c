@@ -1,17 +1,5 @@
 #include "util.h"
 
-//Globais
-TOPICO topicos[MAX_TOPICOS]; 
-int num_topicos = 0;
-
-UTILIZADOR utilizadores[MAX_USERS];  // Array para armazenar usuários
-int num_users = 0;  //posso utilizar uma static na estrutura??
-
-typedef struct {
-    int *pfd;
-    int *pcontinuar; 
-} TDATA;
-
 int main(){
     TDATA pdados[2];
     pthread_t thread_id[2];
@@ -23,7 +11,7 @@ int main(){
         exit(3);
     }
 
-    printf("INICIO...\n");
+    printf("[INFO] Manager Iniciado.\n");
     mkfifo(FIFO_SRV,0600);
     fd = open(FIFO_SRV,O_RDWR); // ?? posso passar isto para dentro da thread
 
@@ -46,6 +34,24 @@ int main(){
     exit(0);
 }
 //Funçoes------------------------------------------------
+void enviar_mensagem_cliente(int pid, const char* mensagem) {
+    char fifo[40];        
+    int fd_cli;              
+    RESPOSTA resposta;       
+
+    sprintf(fifo, FIFO_CLI, pid);
+    fd_cli = open(fifo, O_WRONLY);
+    snprintf(resposta.str, sizeof(resposta.str), "%s", mensagem);
+
+    if (write(fd_cli, &resposta, sizeof(RESPOSTA)) < 0) {
+        printf("[ERRO] Falha ao enviar mensagem para o cliente com PID %d.\n", pid);
+    } else {
+        printf("[INFO] Mensagem enviada para o cliente com PID %d: %s\n", pid, mensagem);
+    }
+    close(fd_cli);
+    return;
+}
+
 void *thread_le_pipe(void *pdata){
     TDATA *data = (TDATA *)pdata;
     int res;
@@ -57,7 +63,7 @@ void *thread_le_pipe(void *pdata){
         fflush(stdout);    
 
         res = read (*(data->pfd), &p, sizeof(PEDIDO) );
-        if(res == sizeof(PEDIDO) ){
+        if(res == sizeof(PEDIDO) && strcmp(p.str, "terminarLePipe") !=0 ){
             printf("RECEBI... '%s' - %d (%d)\n", p.str, p.user.pid, res);
             //Tratar mensagem Cliente
             processar_palavras_utilizador(p, fifo);
@@ -69,12 +75,13 @@ void *thread_le_pipe(void *pdata){
     printf("Termina thread pipe\n");  
     pthread_exit(NULL);
 }
-
-
 void *thread_admin(void *pdata){
     TDATA *data = (TDATA *)pdata;
     char str[TAM];
     char fifo[40];
+    PEDIDO p;
+    int res;
+
     do{
         printf("ADMIN> ");
         fflush(stdout);
@@ -83,15 +90,17 @@ void *thread_admin(void *pdata){
         str[strcspn(str, "\n")] = '\0'; 
 
         processar_palavras_admin(str, fifo);
-        //printf("[DEBUG]Ciclo thread admin.\n");
+        //printf("[DEBUG]Ciclo thread admin.\n");    
     }while ( strcmp(str, "quit") !=0);
 
     *(data->pcontinuar) = 0;
+    //atualiza o pipe para avançar a thread le pipe
+    snprintf(p.str, sizeof(p.str), "terminarLePipe");
+    res = write (*(data->pfd), &p,sizeof(PEDIDO)); //envia para o manager
+
     printf("[DEBUG] Termina thread admin\n");
     pthread_exit(NULL);
 }
-
-
 void processar_palavras_admin(char str[TAM], char fifo[40]){
     RESPOSTA r;
     int res, fd_cli;
@@ -110,19 +119,23 @@ void processar_palavras_admin(char str[TAM], char fifo[40]){
             }
             //comando remove "user"
             if(strcmp(tmpWords[0], "remove") == 0){
+                if(tmpWords[1] == NULL) {return;;}
                 remover_user(tmpWords[1]);
             }
             //comando lock "topico"
             if(strcmp(tmpWords[0], "lock") == 0){
+                if(tmpWords[1] == NULL) {return;;}
                 bloquear_topico(tmpWords[1]);
             }
             //comando unlock "topico"
             if(strcmp(tmpWords[0], "unlock") == 0){
+                if(tmpWords[1] == NULL) {return;;}
                 desbloquear_topico(tmpWords[1]);
             }
             //comando show "topico"
             if(strcmp(tmpWords[0], "show") == 0){
-                listar_mensagens_topico(tmpWords[1]); //?? incompleto, recever diferentes tipos de dados
+                if(tmpWords[1] == NULL) {return;;}
+                listar_mensagens_topico(tmpWords[1]); //?? incompleto, receber diferentes tipos de dados
             }
             //comando quit -- termina todos os clientes
             if(strcmp(str, "quit") == 0){ 
@@ -144,34 +157,60 @@ void processar_palavras_admin(char str[TAM], char fifo[40]){
 
 void processar_palavras_utilizador(PEDIDO p, char fifo[40]){
     int fd_cli;
-                    char* tmpTopico[10]= {NULL}; 
-                    tmpTopico[0] = strtok(p.str," ");
-                    tmpTopico[1] = strtok(NULL," ");
+                   
 
-                    /*int i = 0;
-                    char* token = strtok(p.str, " ");
-                    while (token != NULL && i < 10) {
-                            strcpy(tmpTopico[i], token);
-                            token = strtok(NULL, " ");
-                            i++;
-                    }*/
-                      if (strcmp(tmpTopico[0], "topics") == 0) {
+    char comando_copy[300]; //so interesa as primeiras 3 palavras
+    strncpy(comando_copy, p.str, sizeof(comando_copy) - 1); 
+    comando_copy[sizeof(comando_copy) - 1] = '\0';
+
+    char* palavras[4] = {NULL, NULL, NULL, NULL}; 
+    //char* resto = NULL;                  
+
+    // Dividir em até 3 palavras
+    palavras[0] = strtok(comando_copy, " ");
+    palavras[1] = palavras[0] ? strtok(NULL, " ") : NULL;
+    palavras[2] = palavras[1] ? strtok(NULL, " ") : NULL;
+    palavras[3] = palavras[2] ? strtok(NULL, " ") : NULL;
+    //resto = palavras[2] ? strtok(NULL, "") : NULL;
+
+    // Verifica o comando (primeira palavra)
+    if (palavras[0] == NULL) {
+        printf("[ERRO] Comando vazio.\n");
+        return;
+    }
+                 //-------------------
+
+                    if (strcmp(palavras[0], "msg") == 0) {
+                        if(palavras[1] == NULL || palavras[2] == NULL || palavras[3] == NULL) {return;}
+                        //funçao guardar mensagem.
+                    }
+                    if (strcmp(palavras[0], "topics") == 0) {
                         sprintf(fifo, FIFO_CLI, p.user.pid);
                         fd_cli = open(fifo, O_WRONLY);
                         listar_topicos_para_cliente(fd_cli);
                         close(fd_cli);
                         }
-                    if (strcmp(tmpTopico[0], "registar") == 0) {
+                    if (strcmp(palavras[0], "registar") == 0) {
                         adicionar_user(p.user.nome, p.user.pid);
                         }
-                    if (strcmp(tmpTopico[0], "subscribe") == 0) { //?? se o comando for subscribe sem 2ªpalavra da Falta de Segmentação
-                        criarTopico(tmpTopico[1]);
-                        subscreveTopico(tmpTopico[1], p.user.pid);
+                    if (strcmp(palavras[0], "subscribe") == 0) { //?? se o comando for subscribe sem 2ªpalavra da Falta de Segmentação
+                        if(palavras[1] == NULL) {
+                            printf("[DEBUG] Palavra 1: %s.\n", palavras[1]);
+                            printf("[ERRO] Comando 'subscribe' requer um tópico.\n");
+                            return;
+                            }
+                        criarTopico(palavras[1]);
+                        subscreveTopico(palavras[1], p.user.pid);
                     }
-                     if (strcmp(tmpTopico[0], "unsubscribe") == 0) { 
-                        remove_subscricao_topico(tmpTopico[1], p.user.pid);
+                     if (strcmp(palavras[0], "unsubscribe") == 0) { 
+                        if(palavras[1] == NULL) {
+                            
+                            printf("[ERRO] Comando 'unsubscribe' requer um tópico.\n");
+                            return;
+                            }
+                        remove_subscricao_topico(palavras[1], p.user.pid);
                     }  
-                    if(strcmp(tmpTopico[0], "fim") == 0){
+                    if(strcmp(palavras[0], "fim") == 0){
                         remover_user(p.user.nome);
                     }
                     return;
@@ -252,8 +291,10 @@ void desbloquear_topico(const char* nome_topico){
 }
 //Bloquear Topico
 void bloquear_topico(const char* nome_topico){
+    int encontrado = 0;
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, nome_topico) == 0) {
+            encontrado = 1;
             if(topicos[i].bloqueado){
                 printf("[INFO] O tópico '%s' já se encontra bloqueado.\n", nome_topico);
             }
@@ -263,6 +304,9 @@ void bloquear_topico(const char* nome_topico){
             }
 
         }
+    }
+    if (!encontrado) {
+        printf("[ERRO] O tópico '%s' não existe.\n", nome_topico);
     }
     return;
 }
@@ -300,6 +344,7 @@ void eliminar_topico(const char* nome_topico) {
 }
 //remove subscrição Topico
 void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
+     char mensagem[200];    
     // Verifica se o tópico existe
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, nome_topico) == 0) {
@@ -313,7 +358,9 @@ void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
                     
                     // Decrementa o número de subscritores
                     topicos[i].num_subscritores--;
-                    printf("[INFO] Usuário (PID: %d) removido do tópico '%s'.\n", pid_usuario, nome_topico);
+                    printf("[INFO] Utilizador (PID: %d) removido do tópico '%s'.\n", pid_usuario, nome_topico);
+                    snprintf(mensagem, sizeof(mensagem),  "[INFO] Subscrição removida do tópico '%s'.\n", nome_topico);
+                    enviar_mensagem_cliente(pid_usuario, mensagem);
                     //Elimina topico se ja tiver sem users e msgs
                     eliminar_topico(nome_topico); 
                     return;
@@ -330,6 +377,7 @@ void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
 }
 //Subscreve Topico
 void subscreveTopico(const char* nome_topico, int pid_usuario){
+    char mensagem[200];
     // Verifica se o tópico existe
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, nome_topico) == 0) {
@@ -337,6 +385,8 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
             for (int j = 0; j < topicos[i].num_subscritores; j++) {
                 if (topicos[i].subscritores[j] == pid_usuario) {
                     printf("[INFO] Usuário (PID: %d) já está subscrito no tópico '%s'.\n", pid_usuario, nome_topico);
+                    snprintf(mensagem, sizeof(mensagem),  "[INFO] Já te encontras subscrito no tópico '%s'.\n", nome_topico);
+                    enviar_mensagem_cliente(pid_usuario, mensagem);
                     return;
                 }
             }
@@ -351,6 +401,8 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
             topicos[i].subscritores[topicos[i].num_subscritores] = pid_usuario;
             topicos[i].num_subscritores++;
             printf("[INFO] Usuário (PID: %d) subscrito ao tópico '%s' com sucesso.\n", pid_usuario, nome_topico);
+            snprintf(mensagem, sizeof(mensagem), "[INFO] Subscrito ao tópico '%s' com sucesso.\n", nome_topico);
+            enviar_mensagem_cliente(pid_usuario, mensagem);
             return; // Sucesso
 
         }
