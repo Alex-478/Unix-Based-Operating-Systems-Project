@@ -4,17 +4,19 @@
 TOPICO topicos[MAX_TOPICOS]; 
 int num_topicos = 0;
 
-USUARIO usuarios[MAX_USERS];  // Array para armazenar usuários
-int num_usuarios = 0;  //posso utilizar uma static na estrutura??
+UTILIZADOR utilizadores[MAX_USERS];  // Array para armazenar usuários
+int num_users = 0;  //posso utilizar uma static na estrutura??
+
+typedef struct {
+    int *pfd;
+    int *pcontinuar; 
+} TDATA;
 
 int main(){
-    char str[TAM], fifo[40];
-    int fd, res, fd_cli, n;
-    PEDIDO p;
-    RESPOSTA r;
-    fd_set fds;
-    struct timeval tempo;
-
+    TDATA pdados[2];
+    pthread_t thread_id[2];
+    int continuar = 1;
+    int fd;
 
     if( access(FIFO_SRV, F_OK ) == 0){
         printf("[ERRO] Ja existe um servidor!\n");
@@ -23,31 +25,84 @@ int main(){
 
     printf("INICIO...\n");
     mkfifo(FIFO_SRV,0600);
-    fd = open(FIFO_SRV,O_RDWR);
-do{
-    printf("ADMIN> ");
-    fflush(stdout);
+    fd = open(FIFO_SRV,O_RDWR); // ?? posso passar isto para dentro da thread
 
-    //seletc();
-    FD_ZERO(&fds);
-    FD_SET(0, &fds);   //stdin teclado
-    FD_SET(fd,&fds);  // npipe(fd)
-    tempo.tv_sec = 30;
-    tempo.tv_usec = 0;
+    //Thread le os comandos admin
+    pdados[0].pfd = &fd;
+    pdados[0].pcontinuar = &continuar; //?? porque usar referencia
+    pthread_create(&thread_id[0], NULL, thread_admin, (void *) &pdados[0]);
+    //Thread le o pipe
+    pdados[1].pfd = &fd;
+    pdados[1].pcontinuar = &continuar;
+    pthread_create(&thread_id[1], NULL, thread_le_pipe, (void *) &pdados[1] );
 
-    n = select( fd + 1, &fds, NULL, NULL, &tempo);
-    if(n > 0){  //ha dados... onde?
-        if(FD_ISSET(0, &fds)){  //stdin teclado
-            //scanf("%s", str);
-            fgets(str, sizeof(str), stdin);
-            str[strcspn(str, "\n")] = '\0'; 
+
+    pthread_join(thread_id[0], NULL); //Aguarda Thread admin
+    pthread_join(thread_id[1], NULL); //Aguarda Thread Pipe
+
+    close (fd);
+    unlink(FIFO_SRV);
+    printf("FIM\n");
+    exit(0);
+}
+//Funçoes------------------------------------------------
+void *thread_le_pipe(void *pdata){
+    TDATA *data = (TDATA *)pdata;
+    int res;
+    char fifo[40];
+    PEDIDO p;
+
+    do{
+        printf("ADMIN> ");
+        fflush(stdout);    
+
+        res = read (*(data->pfd), &p, sizeof(PEDIDO) );
+        if(res == sizeof(PEDIDO) ){
+            printf("RECEBI... '%s' - %d (%d)\n", p.str, p.user.pid, res);
+            //Tratar mensagem Cliente
+            processar_palavras_utilizador(p, fifo);
+        }
+        printf("[DEBUG] Ciclo thread pipe\n");
+
+    }while (*(data->pcontinuar)); //espera pelo quit da thread admin
+
+    printf("Termina thread pipe\n");  
+    pthread_exit(NULL);
+}
+
+
+void *thread_admin(void *pdata){
+    TDATA *data = (TDATA *)pdata;
+    char str[TAM];
+    char fifo[40];
+    do{
+        printf("ADMIN> ");
+        fflush(stdout);
+
+        fgets(str, sizeof(str), stdin);
+        str[strcspn(str, "\n")] = '\0'; 
+
+        processar_palavras_admin(str, fifo);
+        //printf("[DEBUG]Ciclo thread admin.\n");
+    }while ( strcmp(str, "quit") !=0);
+
+    *(data->pcontinuar) = 0;
+    printf("[DEBUG] Termina thread admin\n");
+    pthread_exit(NULL);
+}
+
+
+void processar_palavras_admin(char str[TAM], char fifo[40]){
+    RESPOSTA r;
+    int res, fd_cli;
+
             char* tmpWords[10]= {NULL}; 
             tmpWords[0] = strtok(str," ");
             tmpWords[1] = strtok(NULL," ");
 
             //comando users -- lista users
             if(strcmp(tmpWords[0], "users") == 0){
-                listar_usuarios();
+                listar_users();
             }
             //comando topics -- lista topicos
             if(strcmp(tmpWords[0], "topics") == 0){
@@ -55,7 +110,7 @@ do{
             }
             //comando remove "user"
             if(strcmp(tmpWords[0], "remove") == 0){
-                remover_usuario(tmpWords[1]);
+                remover_user(tmpWords[1]);
             }
             //comando lock "topico"
             if(strcmp(tmpWords[0], "lock") == 0){
@@ -67,30 +122,28 @@ do{
             }
             //comando show "topico"
             if(strcmp(tmpWords[0], "show") == 0){
-                listar_mensagens_topico(tmpWords[1]); //?? testar
+                listar_mensagens_topico(tmpWords[1]); //?? incompleto, recever diferentes tipos de dados
             }
             //comando quit -- termina todos os clientes
             if(strcmp(str, "quit") == 0){ 
                 for(int i = 0; i<MAX_USERS; ++i){ 
-                        if(usuarios[i].ativo){
-                            sprintf(fifo, FIFO_CLI, usuarios[i].pid);
+                        if(utilizadores[i].ativo){
+                            sprintf(fifo, FIFO_CLI, utilizadores[i].pid);
                             fd_cli = open(fifo, O_WRONLY);
                             strcpy(r.str, "fim");
                             res = write( fd_cli, &r, sizeof(RESPOSTA));
                             close(fd_cli);
                             //printf("ENVIEI... '%s' (%d)\n", r.str,res);
-                            printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, usuarios[i].nome, r.str);
+                            printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[i].nome, r.str);
                         }
                     }
             }
-        }
-        else if(FD_ISSET(fd, &fds)){  //pide fd
-                res = read (fd, &p, sizeof(PEDIDO) );
-                if(res == sizeof(PEDIDO) ){
-                    printf("RECEBI... '%s' - %d (%d)\n", p.str, p.user.pid, res);
-                    
-                    //Tratar mensagem Cliente
-                    
+            
+    return;
+}
+
+void processar_palavras_utilizador(PEDIDO p, char fifo[40]){
+    int fd_cli;
                     char* tmpTopico[10]= {NULL}; 
                     tmpTopico[0] = strtok(p.str," ");
                     tmpTopico[1] = strtok(NULL," ");
@@ -109,7 +162,7 @@ do{
                         close(fd_cli);
                         }
                     if (strcmp(tmpTopico[0], "registar") == 0) {
-                        adicionar_usuario(p.user.nome, p.user.pid);
+                        adicionar_user(p.user.nome, p.user.pid);
                         }
                     if (strcmp(tmpTopico[0], "subscribe") == 0) { //?? se o comando for subscribe sem 2ªpalavra da Falta de Segmentação
                         criarTopico(tmpTopico[1]);
@@ -119,32 +172,10 @@ do{
                         remove_subscricao_topico(tmpTopico[1], p.user.pid);
                     }  
                     if(strcmp(tmpTopico[0], "fim") == 0){
-                        remover_usuario(p.user.nome);
+                        remover_user(p.user.nome);
                     }
-                    /*else{  //envia para todos os clientes o que tiver recebido de um cliente
-                        for(int i = 0; i<num_usuarios; ++i){ 
-                            if(usuarios[i].ativo){
-                                sprintf(fifo, FIFO_CLI, usuarios[i].pid);
-                                fd_cli = open(fifo, O_WRONLY);
-                                strcpy(r.str, p.str);
-                                res = write( fd_cli, &r, sizeof(RESPOSTA));  // res=-1 ??
-                                close(fd_cli);
-                                printf("ENVIEI... '%s' (%d)\n", r.str,res);
-                    
-                            }
-                        }
-                    }*/
-                }
-            }
-    }    
-}while ( strcmp(str, "quit") !=0);
-
-    close (fd);
-    unlink(FIFO_SRV);
-    printf("FIM\n");
-    exit(0);
+                    return;
 }
-
 void listar_topicos_para_cliente(int fd_cliente) {
     char buffer[1024] = ""; 
     char estado[15];  
@@ -174,8 +205,8 @@ void listar_topicos_para_cliente(int fd_cliente) {
 
        
         if (strlen(buffer) >= sizeof(resposta.str) - 1 || i == num_topicos - 1) {
-            strcpy(resposta.str, buffer, sizeof(resposta.str) - 1);
-            resposta.str[sizeof(resposta.str) - 1] = '\0'
+            strcpy(resposta.str, buffer);
+            resposta.str[sizeof(resposta.str) - 1] = '\0';
             write(fd_cliente, &resposta, sizeof(RESPOSTA));
             buffer[0] = '\0'; // Limpa o buffer
         }
@@ -372,108 +403,109 @@ void listar_topicos() {
     }
 }
 //Adicionar Usuario
-int adicionar_usuario(const char* nome_usuario, int pid) {
+int adicionar_user(const char* nome_usuario, int pid) {
     int fd_cli, res;
     char fifo[40];
     RESPOSTA r;
 
 
     //verifica se o num de usarios atingio o MAX
-    if (num_usuarios >= MAX_USERS) {
+    if (num_users >= MAX_USERS) {
         printf("[ERRO] Limite de usuários atingido.\n");
         return -1;
     }
     //Verifica se usuario já existe, se já alter o PID
     for (int i = 0; i < MAX_USERS; i++) {
-        if (usuarios[i].ativo && strcmp(usuarios[i].nome, nome_usuario) == 0) {  //podemos verificar se esta ativo 
-            usuarios[i].pid = pid;                                                  
+        if (utilizadores[i].ativo && strcmp(utilizadores[i].nome, nome_usuario) == 0) {  //podemos verificar se esta ativo 
+            utilizadores[i].pid = pid;                                                  
             printf("[INFO] Usuário com PID %d já está registrado.\n", pid);
             return -1;
         }
     }
 
-    //Posso usar o valor de num_usuarios diretamente
-        strcpy(usuarios[num_usuarios].nome, nome_usuario);
-            usuarios[num_usuarios].pid = pid;
-            usuarios[num_usuarios].ativo = 1;
-            num_usuarios++;
+    //Posso usar o valor de num_users diretamente
+        strcpy(utilizadores[num_users].nome, nome_usuario);
+            utilizadores[num_users].pid = pid;
+            utilizadores[num_users].ativo = 1;
+            num_users++;
 
      //Adiciona a primeira vaga inativo       
     /*for (int i = 0; i < MAX_USERS; i++) { 
-        if (!usuarios[i].ativo) {
-            strcpy(usuarios[i].nome, nome_usuario);
-            usuarios[i].pid = pid;
-            usuarios[i].ativo = 1;
-            num_usuarios++;
+        if (!utilizadores[i].ativo) {
+            strcpy(utilizadores[i].nome, nome_usuario);
+            utilizadores[i].pid = pid;
+            utilizadores[i].ativo = 1;
+            num_users++;
             printf("[INFO] Usuário '%s' com PID %d adicionado.\n", nome_usuario, pid);
             //return 0;
         }
     } */
 
-    for (int j = 0; j < num_usuarios; j++){
-                if (usuarios[j].ativo){
-                    sprintf(fifo, FIFO_CLI, usuarios[j].pid);  // Formata o nome do pipe do cliente
+    for (int j = 0; j < num_users; j++){
+                if (utilizadores[j].ativo){
+                    sprintf(fifo, FIFO_CLI, utilizadores[j].pid);  // Formata o nome do pipe do cliente
                     fd_cli = open(fifo, O_WRONLY);             // Abre o pipe para o cliente
                     if (fd_cli != -1) {
                         snprintf(r.str, sizeof(r.str), "O usuário '%s' conectou.", nome_usuario);
                         res = write(fd_cli, &r, sizeof(RESPOSTA));  // Envia a mensagem
                         close(fd_cli);
-                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, usuarios[j].nome, r.str);
+                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[j].nome, r.str);
                     } else {
-                        printf("[ERRO] Não foi possível abrir o pipe para o %s.\n", usuarios[j].nome);
+                        printf("[ERRO] Não foi possível abrir o pipe para o %s.\n", utilizadores[j].nome);
                     }
                 }
             }
 
     return 0;
 }
-//Listar Usuarios
-void listar_usuarios() {
+//Listar Utilizadores
+void listar_users() {
     printf("Usuários ativos:\n");
     for (int i = 0; i < MAX_USERS; i++) {
-        if (usuarios[i].ativo) {
-            printf("Nome: %s -PID: %d\n", usuarios[i].nome, usuarios[i].pid);
+        if (utilizadores[i].ativo) {
+            printf("Nome: %s -PID: %d\n", utilizadores[i].nome, utilizadores[i].pid);
         }
     }
-    if (num_usuarios == 0) {
+    if (num_users == 0) {
         printf("[INFO] Nenhum usuário ativo.\n");
     }
+return;
 }
 //Remover Usuario
-int remover_usuario(const char* nome_usuario) {
+int remover_user(const char* nome_usuario) {
     int fd_cli, res;
     char fifo[40];
     RESPOSTA r;
 
     //Verifica se esta registado
-    for (int i = 0; i < num_usuarios; i++) {
-        if (usuarios[i].ativo && strcmp(usuarios[i].nome, nome_usuario) == 0) {
+    for (int i = 0; i < num_users; i++) {
+        if (utilizadores[i].ativo && strcmp(utilizadores[i].nome, nome_usuario) == 0) {
             //Enviar fim para terminar user
-            sprintf(fifo, FIFO_CLI, usuarios[i].pid);
+            sprintf(fifo, FIFO_CLI, utilizadores[i].pid);
             fd_cli = open(fifo, O_WRONLY);
             strcpy(r.str, "fim");
             res = write( fd_cli, &r, sizeof(RESPOSTA));
             close(fd_cli);
             //printf("ENVIEI... '%s' (%d)\n", r.str,res);
-            printf("[INFO] Disconectar: '%s'\n", usuarios[i].nome);  
+            printf("[INFO] Disconectar: '%s'\n", utilizadores[i].nome);  
             //remover usuario
-            usuarios[i].ativo = 0;
-            usuarios[i].pid = 0;
-            num_usuarios--;    
+            utilizadores[i].ativo = 0;
+            utilizadores[i].pid = 0;
+            num_users--;    
             printf("[INFO] Usuário '%s' removido.\n", nome_usuario);       
     
             //Informar todos os users conectados sobre a desconexao
-            for (int j = 0; j < num_usuarios; j++){
-                if (usuarios[j].ativo){
-                    sprintf(fifo, FIFO_CLI, usuarios[j].pid);  // Formata o nome do pipe do cliente
+            for (int j = 0; j < num_users; j++){
+                if (utilizadores[j].ativo){
+                    sprintf(fifo, FIFO_CLI, utilizadores[j].pid);  // Formata o nome do pipe do cliente
                     fd_cli = open(fifo, O_WRONLY);             // Abre o pipe para o cliente
                     if (fd_cli != -1) {
                         snprintf(r.str, sizeof(r.str), "O usuário '%s' desconectou.", nome_usuario);
                         res = write(fd_cli, &r, sizeof(RESPOSTA));  // Envia a mensagem
                         close(fd_cli);
-                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, usuarios[j].nome, r.str);
+                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[j].nome, r.str);
                     } else {
-                        printf("[ERRO] Não foi possível abrir o pipe para o %s.\n", usuarios[j].nome);
+                        printf("[ERRO] Não foi possível abrir o pipe para o %s.\n", utilizadores[j].nome);
                     }
                 }
             }

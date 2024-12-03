@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <sys/select.h>
 #include <string.h>
+#include <pthread.h>
 
 #define TAM 30
 #define FIFO_SRV "/tmp/tubo"
@@ -16,33 +17,15 @@
 #define MAX_MSG_PERSISTENTES 5
 #define TAM_MSG 300
 
-//Declarar Funçoes
-void listar_topicos_para_cliente(int fd_cliente);
-void listar_mensagens_topico(const char* nome_topico);
-void bloquear_topico(const char* nome_topico);
-void desbloquear_topico(const char* nome_topico);
-void eliminar_topico(const char* nome_topico);
-void remove_subscricao_topico(const char* nome_topico, int pid_usuario);
-void subscreveTopico(const char* nome_topico, int pid_usuario);
-void criarTopico(const char* nome);
-void listar_topicos();
-
-int adicionar_usuario(const char* nome_usuario, int pid);
-void listar_usuarios();
-int remover_usuario(const char* nome_usuario);
-
-
-
-
 typedef struct {
     char nome[TAM]; //nome usuario quando executa o feed
     int pid;    // PID do usuário
     int ativo;  // Flag: 1 = ativo, 0 = não ativo
-} USUARIO;
+} UTILIZADOR;
 
 typedef struct{
         char str[TAM];
-        USUARIO user;
+        UTILIZADOR user;
 }PEDIDO;
 
 typedef struct{
@@ -63,3 +46,29 @@ typedef struct {
     int subscritores[MAX_USERS];               // PIDs dos usuários subscritos
     int num_subscritores;               // Número de subscritores
 } TOPICO;
+
+//Declarar Funçoes
+
+//Threads
+void *thread_le_pipe(void *pdata);
+void *thread_admin(void *pdata);
+
+//Processar as palavras
+void processar_palavras_admin(char str[TAM], char fifo[40]);
+void processar_palavras_utilizador(PEDIDO p, char fifo[40]);
+
+//Topicos
+void listar_topicos_para_cliente(int fd_cliente); //imcompleto?? Diferentes tamanho de msg
+void listar_mensagens_topico(const char* nome_topico);
+void bloquear_topico(const char* nome_topico);
+void desbloquear_topico(const char* nome_topico);
+void eliminar_topico(const char* nome_topico);
+void remove_subscricao_topico(const char* nome_topico, int pid_usuario);
+void subscreveTopico(const char* nome_topico, int pid_usuario);
+void criarTopico(const char* nome);
+void listar_topicos();
+
+//USERS
+int adicionar_user(const char* nome_usuario, int pid);
+void listar_users();
+int remover_user(const char* nome_usuario);
