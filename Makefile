@@ -2,16 +2,19 @@
 MANAGER_EXEC = manager
 FEED_EXEC = feed
 
+# Diretórios adicionais
+MANAGER_DIR = manager_files
+
 # Arquivos-fonte para cada executável
-MANAGER_SRC = manager.c
+MANAGER_SRC = manager.c $(MANAGER_DIR)/mensagensFuncoes.c $(MANAGER_DIR)/topicosFuncoes.c $(MANAGER_DIR)/userFuncoes.c
 FEED_SRC = feed.c
 
 # Cabeçalhos compartilhados
-HEADERS = util.h
+HEADERS = util.h	$(MANAGER_DIR)/manager_util.h
 
 # Compilador e flags
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99
+CFLAGS = -Wall -Wextra -std=c99 -I. -I$(MANAGER_DIR)
 
 # Regra padrão: compilar ambos os executáveis
 all: $(MANAGER_EXEC) $(FEED_EXEC)
