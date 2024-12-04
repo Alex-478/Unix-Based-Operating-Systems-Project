@@ -44,6 +44,13 @@ typedef struct {
 } MENSAGEM;
 
 typedef struct {
+    char nome_topico[TAM];   
+    char corpo[TAM_MSG];        
+    int duracao;            
+    time_t timestamp;       
+} MENSAGEM_FICH;
+
+typedef struct {
     char nome[TAM];                     // Nome do tópico
     MENSAGEM mensagens[MAX_MSG_PERSISTENTES];  // Mensagens persistentes
     int num_mensagens;                  // Quantidade de mensagens armazenadas
@@ -64,6 +71,8 @@ int num_users = 0;  //posso utilizar uma static na estrutura??
 //Declarar Funçoes
 
 //Mensagens
+void carregar_mensagens(const char* nome_ficheiro);
+void armazena_mensagens(const char* nome_ficheiro);
 void atualizar_mensagens();
 void guardar_mensagem(const char* topico, const char* mensagem, int duracao);
 void enviar_msg_subscritos(const char* topico, const char* mensagem);

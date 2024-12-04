@@ -15,6 +15,8 @@ int main(){
     mkfifo(FIFO_SRV,0600);
     fd = open(FIFO_SRV,O_RDWR); // ?? posso passar isto para dentro da thread
 
+    carregar_mensagens("msg.bin");
+
     //Thread le os comandos admin
     pdados[0].pfd = &fd;
     pdados[0].pcontinuar = &continuar; //?? porque usar referencia
@@ -32,12 +34,71 @@ int main(){
     pthread_join(thread_id[1], NULL); //Aguarda Thread Pipe
     pthread_join(thread_id[2], NULL); //Aguarda Thread Tempo
 
+    armazena_mensagens("msg.bin");
+
     close (fd);
     unlink(FIFO_SRV);
     printf("FIM\n");
     exit(0);
 }
 //Funçoes------------------------------------------------
+
+void carregar_mensagens(const char* nome_ficheiro) {
+    FILE* ficheiro = fopen(nome_ficheiro, "rb");
+    if (!ficheiro) {
+        printf("[INFO] Ficheiro '%s' não encontrado. Nenhuma mensagem recuperada.\n", nome_ficheiro);
+        return;
+    }
+
+    MENSAGEM_FICH msg_fich;
+    while (fread(&msg_fich, sizeof(MENSAGEM_FICH), 1, ficheiro) == 1) {
+        // Cria o tópico 
+        criarTopico(msg_fich.nome_topico);
+        // Adiciona a mensagem ao tópico
+        guardar_mensagem(msg_fich.nome_topico, msg_fich.corpo, msg_fich.duracao);
+        printf("[INFO] Mensagem recuperada no tópico '%s': %s\n", msg_fich.nome_topico, msg_fich.corpo);
+        
+    }
+
+    fclose(ficheiro);
+    printf("[INFO] Mensagens persistentes carregadas de '%s'.\n", nome_ficheiro);
+}
+
+void armazena_mensagens(const char* nome_ficheiro) {
+    FILE* ficheiro = fopen(nome_ficheiro, "wb");
+    if (!ficheiro) {
+        printf("[ERRO] Não foi possível abrir o ficheiro '%s' para escrita.\n", nome_ficheiro);
+        return;
+    }
+
+    for (int i = 0; i < num_topicos; i++) {
+        for (int j = 0; j < topicos[i].num_mensagens; j++) {
+            MENSAGEM_FICH msg_fich;
+
+            //Preenche os dados
+            strncpy(msg_fich.nome_topico, topicos[i].nome, sizeof(msg_fich.nome_topico) - 1);
+            msg_fich.nome_topico[sizeof(msg_fich.nome_topico) - 1] = '\0';
+
+            strncpy(msg_fich.corpo, topicos[i].mensagens[j].corpo, sizeof(msg_fich.corpo) - 1);
+            msg_fich.corpo[sizeof(msg_fich.corpo) - 1] = '\0';
+
+            time_t agora = time(NULL);
+            msg_fich.duracao = topicos[i].mensagens[j].duracao;
+            msg_fich.duracao = msg_fich.duracao - (agora - topicos[i].mensagens[j].timestamp);
+
+            //msg_fich.duracao = topicos[i].mensagens[j].duracao;
+            //msg_fich.timestamp = topicos[i].mensagens[j].timestamp;
+
+            //Escreve no ficheiro
+            fwrite(&msg_fich, sizeof(MENSAGEM_FICH), 1, ficheiro);
+
+        }
+    }
+
+    fclose(ficheiro);
+    printf("[INFO] Mensagens armazenadas com sucesso: '%s'.\n", nome_ficheiro);
+}
+
 void enviar_mensagem_cliente(int pid, const char* mensagem) { // !! alterar nome
     char fifo[40];        
     int fd_cli;              
@@ -252,6 +313,7 @@ void atualizar_mensagens() {
         }
     }
 }
+
 void guardar_mensagem(const char* topico, const char* mensagem, int duracao) {
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, topico) == 0) { 
@@ -266,6 +328,7 @@ void guardar_mensagem(const char* topico, const char* mensagem, int duracao) {
             strncpy(topicos[i].mensagens[idx].corpo, mensagem, sizeof(topicos[i].mensagens[idx].corpo) - 1);
             topicos[i].mensagens[idx].corpo[sizeof(topicos[i].mensagens[idx].corpo) - 1] = '\0';
             topicos[i].mensagens[idx].duracao = duracao;
+
             topicos[i].mensagens[idx].timestamp = time(NULL); 
             topicos[i].num_mensagens++;
 
