@@ -6,9 +6,9 @@
 void carregar_mensagens(const char* nome_ficheiro);
 void armazena_mensagens(const char* nome_ficheiro);
 void atualizar_mensagens();
-void guardar_mensagem(const char* topico, const char* mensagem, int duracao);
-void enviar_msg_subscritos(const char* topico, const char* mensagem);
-void processar_messagem_utilizador(char* comando);
+void guardar_mensagem(const char* nome_user, const char* topico, const char* mensagem, int duracao);
+void enviar_msg_subscritos(const char* nome_user, const char* topico, const char* mensagem);
+void processar_messagem_utilizador(PEDIDO p);
 void enviar_mensagem_cliente(int pid, const char* mensagem);
 
 //Threads

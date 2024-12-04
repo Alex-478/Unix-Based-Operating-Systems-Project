@@ -191,7 +191,7 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
             enviar_mensagem_cliente(pid_usuario, mensagem);
             //Enviar mensagens Guardadas
             for(int k = 0; k < topicos[i].num_mensagens; k++ ){
-                enviar_msg_subscritos(topicos[i].nome, topicos[i].mensagens[k].corpo);
+                enviar_msg_subscritos(topicos[i].mensagens[k].utilizador ,topicos[i].nome, topicos[i].mensagens[k].corpo);
             }
 
             return; // Sucesso

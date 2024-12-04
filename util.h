@@ -37,16 +37,19 @@ typedef struct{
 }PEDIDO;
 
 typedef struct{
+        int type;
         char str[1024]; //TAM
 }RESPOSTA;
 
 typedef struct {
+    char utilizador[TAM];
     char corpo[TAM_MSG];
     int duracao;        // Em segundos
     time_t timestamp;  // Momento em que a mensagem foi enviada
 } MENSAGEM;
 
 typedef struct {
+    char utilizador[TAM];
     char nome_topico[TAM];   
     char corpo[TAM_MSG];        
     int duracao;            

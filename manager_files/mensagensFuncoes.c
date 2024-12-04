@@ -12,8 +12,8 @@ void carregar_mensagens(const char* nome_ficheiro) {
         // Cria o tópico 
         criarTopico(msg_fich.nome_topico);
         // Adiciona a mensagem ao tópico
-        guardar_mensagem(msg_fich.nome_topico, msg_fich.corpo, msg_fich.duracao);
-        printf("[INFO] Mensagem recuperada no tópico '%s': %s\n", msg_fich.nome_topico, msg_fich.corpo);
+        guardar_mensagem(msg_fich.utilizador,msg_fich.nome_topico, msg_fich.corpo, msg_fich.duracao);
+        printf("[INFO] Mensagem recuperada no tópico [%s]%s: %s\n", msg_fich.nome_topico, msg_fich.utilizador, msg_fich.corpo);
         
     }
 
@@ -33,6 +33,8 @@ void armazena_mensagens(const char* nome_ficheiro) {
             MENSAGEM_FICH msg_fich;
 
             //Preenche os dados
+            strcpy(msg_fich.utilizador, topicos[i].mensagens[j].utilizador);
+
             strncpy(msg_fich.nome_topico, topicos[i].nome, sizeof(msg_fich.nome_topico) - 1);
             msg_fich.nome_topico[sizeof(msg_fich.nome_topico) - 1] = '\0';
 
@@ -78,7 +80,7 @@ void atualizar_mensagens() {
     }
 }
 
-void guardar_mensagem(const char* topico, const char* mensagem, int duracao) {
+void guardar_mensagem(const char* nome_user, const char* topico, const char* mensagem, int duracao) {
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, topico) == 0) { 
             // Verifica se o limite de msg
@@ -89,10 +91,10 @@ void guardar_mensagem(const char* topico, const char* mensagem, int duracao) {
 
             // Armazena 
             int idx = topicos[i].num_mensagens;
+            strcpy(topicos[i].mensagens[idx].utilizador, nome_user);
             strncpy(topicos[i].mensagens[idx].corpo, mensagem, sizeof(topicos[i].mensagens[idx].corpo) - 1);
             topicos[i].mensagens[idx].corpo[sizeof(topicos[i].mensagens[idx].corpo) - 1] = '\0';
             topicos[i].mensagens[idx].duracao = duracao;
-
             topicos[i].mensagens[idx].timestamp = time(NULL); 
             topicos[i].num_mensagens++;
 
@@ -105,13 +107,13 @@ void guardar_mensagem(const char* topico, const char* mensagem, int duracao) {
     printf("[ERRO] O tópico '%s' não existe. Mensagem não armazenada.\n", topico);
 }
 
-void enviar_msg_subscritos(const char* topico, const char* mensagem) {
+void enviar_msg_subscritos(const char* nome_user, const char* topico, const char* mensagem) {
     char fifo[40];
     MENSAGEM msg;
     int fd;
 
     // Formata a mensagem para incluir o tópico
-    snprintf(msg.corpo, sizeof(msg.corpo), "[%s]: %s", topico, mensagem);
+    snprintf(msg.corpo, sizeof(msg.corpo), "[%s]%s: %s", topico, nome_user, mensagem);
     // Percorre todos os tópicos para encontrar o correspondente
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, topico) == 0) { // Verifica se é o tópico correto
@@ -146,11 +148,12 @@ void enviar_msg_subscritos(const char* topico, const char* mensagem) {
     }
 }
 
-void processar_messagem_utilizador(char* comando) {
+void processar_messagem_utilizador(PEDIDO p) {
     char comando_copia[TAM_MSG] ;
-    strncpy(comando_copia, comando, sizeof(comando_copia) - 1);
+    strncpy(comando_copia, p.str, sizeof(comando_copia) - 1);
     comando_copia[sizeof(comando_copia) - 1] = '\0'; 
-
+    
+    char* utilizador = p.user.nome;
     char* topico = NULL;       
     char* duracao_str = NULL;  
     char* mensagem = NULL;     
@@ -192,16 +195,17 @@ void processar_messagem_utilizador(char* comando) {
 
 
     printf("\n--[DEBUG]Mensagem Separada----\n");
+    printf("Utilizador: %s\n", utilizador);
     printf("Tópico: %s\n", topico);
     printf("Duração: %d\n", duracao);
     printf("Mensagem: %s\n", mensagem);
 
     //Envia para Utilizadores subscritos nos topicos
-    enviar_msg_subscritos(topico, mensagem);
+    enviar_msg_subscritos(utilizador,topico, mensagem);
     
     //Guarda msg
     if(duracao != 0){
-        guardar_mensagem(topico, mensagem, duracao);
+        guardar_mensagem(utilizador,topico, mensagem, duracao);
     }
 
    return;     

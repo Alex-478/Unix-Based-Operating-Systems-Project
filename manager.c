@@ -36,7 +36,7 @@ int main(){
     //Contar o tempo
     pdados[2].pfd = &fd;
     pdados[2].pcontinuar = &continuar;
-    pthread_create(&thread_id[2], NULL, thread_monitorar_mensagens, (void *) &pdados[2]);
+    pthread_create(&thread_id[2], NULL, thread_monitorar_mensagens, (void *) &pdados[2]); 
 
     pthread_join(thread_id[0], NULL); //Aguarda Thread admin
     pthread_join(thread_id[1], NULL); //Aguarda Thread Pipe
@@ -189,7 +189,7 @@ void processar_palavras_utilizador(PEDIDO p, char fifo[40]){
 
                     if (strcmp(palavras[0], "msg") == 0) {
                         if(palavras[1] == NULL || palavras[2] == NULL || palavras[3] == NULL) {return;}
-                        processar_messagem_utilizador(p.str);
+                        processar_messagem_utilizador(p);
                     }
                     if (strcmp(palavras[0], "topics") == 0) {
                         sprintf(fifo, FIFO_CLI, p.user.pid);

@@ -84,6 +84,9 @@ int main(int argc, char *argv[]){
                 
             }
             else if(FD_ISSET(fd_cli, &fds)){        //select pipe
+                res = read(fd_cli, &r, sizeof(int));
+
+
                 res = read(fd_cli, &r, sizeof(RESPOSTA));
                 printf("RECEBI...\n '%s' (%d)\n", r.str, res);
             }
