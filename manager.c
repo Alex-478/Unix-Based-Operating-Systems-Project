@@ -1,8 +1,8 @@
 #include "util.h"
 
 int main(){
-    TDATA pdados[2];
-    pthread_t thread_id[2];
+    TDATA pdados[3];
+    pthread_t thread_id[3];
     int continuar = 1;
     int fd;
 
@@ -23,10 +23,14 @@ int main(){
     pdados[1].pfd = &fd;
     pdados[1].pcontinuar = &continuar;
     pthread_create(&thread_id[1], NULL, thread_le_pipe, (void *) &pdados[1] );
-
+    //Contar o tempo
+    pdados[2].pfd = &fd;
+    pdados[2].pcontinuar = &continuar;
+    pthread_create(&thread_id[2], NULL, monitorar_mensagens, (void *) &pdados[2]);
 
     pthread_join(thread_id[0], NULL); //Aguarda Thread admin
     pthread_join(thread_id[1], NULL); //Aguarda Thread Pipe
+    pthread_join(thread_id[2], NULL); //Aguarda Thread Tempo
 
     close (fd);
     unlink(FIFO_SRV);
@@ -34,7 +38,7 @@ int main(){
     exit(0);
 }
 //Funçoes------------------------------------------------
-void enviar_mensagem_cliente(int pid, const char* mensagem) {
+void enviar_mensagem_cliente(int pid, const char* mensagem) { // !! alterar nome
     char fifo[40];        
     int fd_cli;              
     RESPOSTA resposta;       
@@ -50,6 +54,16 @@ void enviar_mensagem_cliente(int pid, const char* mensagem) {
     }
     close(fd_cli);
     return;
+}
+void *monitorar_mensagens(void *pdata) {
+    TDATA *data = (TDATA *)pdata;
+    while (*(data->pcontinuar)) {
+        atualizar_mensagens();
+        sleep(1); 
+        //printf("[DEBUG]Atuliza Tempo mensagens\n");  
+    }
+    printf("[DEBUG]Termina thread tempo\n");  
+    pthread_exit(NULL);
 }
 
 void *thread_le_pipe(void *pdata){
@@ -72,7 +86,7 @@ void *thread_le_pipe(void *pdata){
 
     }while (*(data->pcontinuar)); //espera pelo quit da thread admin
 
-    printf("Termina thread pipe\n");  
+    printf("[DEBUG]Termina thread pipe\n");  
     pthread_exit(NULL);
 }
 void *thread_admin(void *pdata){
@@ -159,20 +173,21 @@ void processar_palavras_utilizador(PEDIDO p, char fifo[40]){
     int fd_cli;
                    
 
-    char comando_copy[300]; //so interesa as primeiras 3 palavras
-    strncpy(comando_copy, p.str, sizeof(comando_copy) - 1); 
-    comando_copy[sizeof(comando_copy) - 1] = '\0';
+    char comando_aux[300]; //so interesa as primeiras 3 palavras
+    strncpy(comando_aux, p.str, sizeof(comando_aux) - 1); 
+    comando_aux[sizeof(comando_aux) - 1] = '\0';
 
     char* palavras[4] = {NULL, NULL, NULL, NULL}; 
     //char* resto = NULL;                  
-
+    printf("[DEBUG] Comando aux 1: %s\n", comando_aux);
     // Dividir em até 3 palavras
-    palavras[0] = strtok(comando_copy, " ");
+    palavras[0] = strtok(comando_aux, " "); //comando_aux fica so com a primeira palavra??
     palavras[1] = palavras[0] ? strtok(NULL, " ") : NULL;
     palavras[2] = palavras[1] ? strtok(NULL, " ") : NULL;
     palavras[3] = palavras[2] ? strtok(NULL, " ") : NULL;
     //resto = palavras[2] ? strtok(NULL, "") : NULL;
-
+  //char* resto = NULL;                  
+    printf("[DEBUG] Comando aux 2: %s\n", comando_aux);
     // Verifica o comando (primeira palavra)
     if (palavras[0] == NULL) {
         printf("[ERRO] Comando vazio.\n");
@@ -182,7 +197,7 @@ void processar_palavras_utilizador(PEDIDO p, char fifo[40]){
 
                     if (strcmp(palavras[0], "msg") == 0) {
                         if(palavras[1] == NULL || palavras[2] == NULL || palavras[3] == NULL) {return;}
-                        //funçao guardar mensagem.
+                        processar_messagem_utilizador(p.str);
                     }
                     if (strcmp(palavras[0], "topics") == 0) {
                         sprintf(fifo, FIFO_CLI, p.user.pid);
@@ -215,6 +230,156 @@ void processar_palavras_utilizador(PEDIDO p, char fifo[40]){
                     }
                     return;
 }
+//procesar msg--
+void atualizar_mensagens() {
+    time_t agora = time(NULL); // Tempo atual
+
+    // Iterar sobre todos os tópicos
+    for (int i = 0; i < num_topicos; i++) {
+        for (int j = 0; j < topicos[i].num_mensagens; j++) {
+            // Verifica se a mensagem expirou
+            if (agora - topicos[i].mensagens[j].timestamp >= topicos[i].mensagens[j].duracao) {
+                printf("[INFO] Mensagem expirada no tópico '%s': %s\n", topicos[i].nome, topicos[i].mensagens[j].corpo);
+
+                // Remove a mensagem (movendo as seguintes para a esquerda)
+                for (int k = j; k < topicos[i].num_mensagens - 1; k++) {
+                    topicos[i].mensagens[k] = topicos[i].mensagens[k + 1];
+                }
+
+                topicos[i].num_mensagens--; // Decrementa o contador de mensagens
+                j--; // Reajusta o índice para verificar a nova mensagem na posição
+            }
+        }
+    }
+}
+void guardar_mensagem(const char* topico, const char* mensagem, int duracao) {
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, topico) == 0) { 
+            // Verifica se o limite de msg
+            if (topicos[i].num_mensagens >= 100) {
+                printf("[ERRO] O tópico '%s' atingiu o limite de mensagens.\n", topico);
+                return;
+            }
+
+            // Armazena 
+            int idx = topicos[i].num_mensagens;
+            strncpy(topicos[i].mensagens[idx].corpo, mensagem, sizeof(topicos[i].mensagens[idx].corpo) - 1);
+            topicos[i].mensagens[idx].corpo[sizeof(topicos[i].mensagens[idx].corpo) - 1] = '\0';
+            topicos[i].mensagens[idx].duracao = duracao;
+            topicos[i].mensagens[idx].timestamp = time(NULL); 
+            topicos[i].num_mensagens++;
+
+            printf("[INFO] Mensagem armazenada no tópico '%s': %s (Duração: %d segundos)\n", topico, mensagem, duracao);
+            return;
+        }
+    }
+
+    // Se o tópico não foi encontrado
+    printf("[ERRO] O tópico '%s' não existe. Mensagem não armazenada.\n", topico);
+}
+
+void enviar_msg_subscritos(const char* topico, const char* mensagem) {
+    char fifo[40];
+    MENSAGEM msg;
+    int fd;
+
+    // Formata a mensagem para incluir o tópico
+    snprintf(msg.corpo, sizeof(msg.corpo), "[%s]: %s", topico, mensagem);
+    // Percorre todos os tópicos para encontrar o correspondente
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, topico) == 0) { // Verifica se é o tópico correto
+            // Enviar mensagem para todos os subscritores do tópico
+            for (int j = 0; j < topicos[i].num_subscritores; j++) {
+                int pid_usuario = topicos[i].subscritores[j];
+
+                // Verifica se o usuário está ativo
+                for (int k = 0; k < MAX_USERS; k++) {
+                    if (utilizadores[k].ativo && utilizadores[k].pid == pid_usuario) {
+                        // Abre o FIFO do cliente
+                        snprintf(fifo, sizeof(fifo), FIFO_CLI, pid_usuario);
+                        fd = open(fifo, O_WRONLY);
+                        if (fd < 0) {
+                            printf("[ERRO] Não foi possível enviar mensagem para %s.\n", utilizadores[k].nome);
+                        }
+
+                        // Escreve a mensagem no FIFO
+                        if (write(fd, &msg, sizeof(MENSAGEM)) < 0) {
+                            printf("[ERRO] Falha ao enviar mensagem para %s.\n", utilizadores[k].nome);
+                        } else {
+                            printf("[INFO] Mensagem enviada para %s: %s\n", utilizadores[k].nome, msg.corpo);
+                        }
+
+                        // Fecha o FIFO
+                        close(fd);
+                    }
+                }
+            }
+            return; // Sai da função após enviar para todos os subscritores
+        }
+    }
+}
+
+void processar_messagem_utilizador(char* comando) {
+    char comando_copia[TAM_MSG] ;
+    strncpy(comando_copia, comando, sizeof(comando_copia) - 1);
+    comando_copia[sizeof(comando_copia) - 1] = '\0'; 
+
+    char* topico = NULL;       
+    char* duracao_str = NULL;  
+    char* mensagem = NULL;     
+
+     printf("---[DEBUG]Mensagem Recebida---- %s\n", topico);
+    printf("MSG: %s\n", comando_copia);
+
+    // Captura o tópico
+    strtok(comando_copia, " ");// ignora palavra 'msg'
+    topico = strtok(NULL, " ");
+    if (topico == NULL) {
+        printf("[ERRO] Comando inválido. Tópico não especificado.\n");
+        return;
+    }
+    // Captura a duração
+    duracao_str = strtok(NULL, " ");
+    if (duracao_str == NULL) {
+        printf("[ERRO] Comando inválido. Duração não especificada.\n");
+        return;
+    }
+    // Captura a mensagem (todo o restante da string)
+    mensagem = strtok(NULL, "\0");
+    if (mensagem == NULL) {
+        printf("[ERRO] Comando inválido. Mensagem não especificada.\n");
+        return;
+    }
+
+    //duração para inteiro
+    int duracao = atoi(duracao_str);
+    if (duracao < 0) {
+        printf("[ERRO] Duração inválida.\n");
+        return;
+    }
+    //Verificar se o topico existe
+    if (verificar_topico(topico) == 0) {
+        printf("[ERRO] O tópico '%s' não existe.\n", topico);
+        return;
+    }    
+
+
+    printf("\n--[DEBUG]Mensagem Separada----\n");
+    printf("Tópico: %s\n", topico);
+    printf("Duração: %d\n", duracao);
+    printf("Mensagem: %s\n", mensagem);
+
+    //Envia para Utilizadores subscritos nos topicos
+    enviar_msg_subscritos(topico, mensagem);
+    
+    //Guarda msg
+    if(duracao != 0){
+        guardar_mensagem(topico, mensagem, duracao);
+    }
+
+   return;     
+}
+
 void listar_topicos_para_cliente(int fd_cliente) {
     char buffer[1024] = ""; 
     char estado[15];  
@@ -403,15 +568,17 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
             printf("[INFO] Usuário (PID: %d) subscrito ao tópico '%s' com sucesso.\n", pid_usuario, nome_topico);
             snprintf(mensagem, sizeof(mensagem), "[INFO] Subscrito ao tópico '%s' com sucesso.\n", nome_topico);
             enviar_mensagem_cliente(pid_usuario, mensagem);
-            return; // Sucesso
+            //Enviar mensagens Guardadas
+            for(int k = 0; k < topicos[i].num_mensagens; k++ ){
+                enviar_msg_subscritos(topicos[i].nome, topicos[i].mensagens[k].corpo);
+            }
 
+            return; // Sucesso
         }
     }
-
     // Se o tópico não foi encontrado
     printf("[ERRO] O tópico '%s' não existe.\n", nome_topico);
     return;
-
 }
 //Criar Topico
 void criarTopico(const char* nome){
@@ -437,6 +604,14 @@ void criarTopico(const char* nome){
     num_topicos++;
     
     return;
+}
+int verificar_topico(const char* nome_topico) {
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, nome_topico) == 0) {
+            return 1; 
+        }
+    }
+    return 0; 
 }
 //Fazer Funçao Listar Topicos
 void listar_topicos() {
@@ -493,7 +668,7 @@ int adicionar_user(const char* nome_usuario, int pid) {
         }
     } */
 
-    for (int j = 0; j < num_users; j++){
+    for (int j = 0; j < MAX_USERS; j++){
                 if (utilizadores[j].ativo){
                     sprintf(fifo, FIFO_CLI, utilizadores[j].pid);  // Formata o nome do pipe do cliente
                     fd_cli = open(fifo, O_WRONLY);             // Abre o pipe para o cliente
@@ -543,9 +718,13 @@ int remover_user(const char* nome_usuario) {
             //remover usuario
             utilizadores[i].ativo = 0;
             utilizadores[i].pid = 0;
-            num_users--;    
+              
             printf("[INFO] Usuário '%s' removido.\n", nome_usuario);       
-    
+            
+            for (int j = i; j < num_users - 1; j++) {
+                utilizadores[j] = utilizadores[j + 1];
+            }
+            num_users--;  
             //Informar todos os users conectados sobre a desconexao
             for (int j = 0; j < num_users; j++){
                 if (utilizadores[j].ativo){

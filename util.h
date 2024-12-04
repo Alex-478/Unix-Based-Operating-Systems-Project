@@ -64,9 +64,14 @@ int num_users = 0;  //posso utilizar uma static na estrutura??
 //Declarar Funçoes
 
 //Mensagens
+void atualizar_mensagens();
+void guardar_mensagem(const char* topico, const char* mensagem, int duracao);
+void enviar_msg_subscritos(const char* topico, const char* mensagem);
+void processar_messagem_utilizador(char* comando);
 void enviar_mensagem_cliente(int pid, const char* mensagem);
 
 //Threads
+void *monitorar_mensagens(void *pdata);
 void *thread_le_pipe(void *pdata);
 void *thread_admin(void *pdata);
 
@@ -75,6 +80,7 @@ void processar_palavras_admin(char str[TAM], char fifo[40]);
 void processar_palavras_utilizador(PEDIDO p, char fifo[40]);
 
 //Topicos
+int verificar_topico(const char* nome_topico); //implementar esta funçao onde possivel
 void listar_topicos_para_cliente(int fd_cliente); //imcompleto?? Diferentes tamanho de msg
 void listar_mensagens_topico(const char* nome_topico);
 void bloquear_topico(const char* nome_topico);

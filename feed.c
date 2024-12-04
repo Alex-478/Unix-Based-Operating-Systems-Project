@@ -4,8 +4,10 @@ Trocar pid_usuario por pid_user
 funçao para receber msg cliente
 Fazer sistema de tempo
 
+ enviar_mensagem_cliente!! alterar nome
 
 
+??enviar uma msg de cada vez ou enviar o topico todo?
 */
 
 
