@@ -130,7 +130,7 @@ void *thread_admin(void *pdata){
 }
 // Processo comnando admin
 void processar_palavras_admin(char str[TAM], char fifo[40]){
-    RESPOSTA r;
+    RESPOSTA r = {.type = 1};   
     int res, fd_cli;
 
             char* tmpWords[10]= {NULL}; 

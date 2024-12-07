@@ -108,7 +108,7 @@ void atualizar_mensagens() {
 
                 topicos[i].num_mensagens--; // Decrementa o contador de mensagens
                 j--; // Reajusta o índice para verificar a nova mensagem na posição
-                pthread_mutex_lock(&mutex_msg);
+                pthread_mutex_unlock(&mutex_msg);
             }
         }
     }
@@ -149,10 +149,11 @@ void enviar_msg_subscritos(const char* nome_user, const char* topico, const char
     char fifo[40];
     MSG_USER msg = {.type = 2};
     int fd;
-    strcpy(msg.corpo, mensagem);
+    strncpy(msg.corpo, mensagem, sizeof(msg.corpo) - 1);
+    msg.corpo[sizeof(msg.corpo) - 1] = '\0'; 
     strcpy(msg.nome_topico, topico);
     strcpy(msg.utilizador, nome_user);
-    printf("[DEBUG] Entrou no enviar msg subscritos");
+    printf("[DEBUG] Entrou no enviar msg subscritos\n");
 
     printf("[DEBUG] MSG_USER:\n");
     printf("  Type: %d\n", msg.type);
@@ -263,10 +264,14 @@ void enviar_mensagem_cliente(int pid, const char* mensagem) { // !! alterar nome
     int fd_cli;              
     RESPOSTA resposta = {.type = 1};       
     printf("[DEBUG]--Resposta type inteiro: %d\n", resposta.type);
+
     sprintf(fifo, FIFO_CLI, pid);
     fd_cli = open(fifo, O_WRONLY);
-    snprintf(resposta.str, sizeof(resposta.str), "%s", mensagem);
-
+    //snprintf(resposta.str, sizeof(resposta.str), "%s", mensagem);
+    
+    strncpy(resposta.str, mensagem, sizeof(resposta.str) -1 );
+    resposta.str[sizeof(resposta.str) - 1] = '\0';
+    
     if (write(fd_cli, &resposta, sizeof(RESPOSTA)) < 0) {
         printf("[ERRO] Falha ao enviar mensagem para o cliente com PID %d.\n", pid);
     } else {

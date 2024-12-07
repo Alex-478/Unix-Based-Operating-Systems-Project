@@ -6,7 +6,7 @@ int adicionar_user(const char* nome_user, int pid) {
     char fifo[40];
     RESPOSTA r = {.type = 1};       
     printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
-    pthread_mutex_lock(&mutex_utilizadores);
+    
 
     //verifica se o num de usarios atingio o MAX
     if (num_users >= MAX_USERS) {
@@ -16,18 +16,18 @@ int adicionar_user(const char* nome_user, int pid) {
     //Verifica se usuario já existe, se já alter o PID
     for (int i = 0; i < MAX_USERS; i++) {
         if (utilizadores[i].ativo && strcmp(utilizadores[i].nome, nome_user) == 0) {  //podemos verificar se esta ativo 
-            utilizadores[i].pid = pid;                                                  
+            utilizadores[i].pid = pid;                             //alterar PID                 
             printf("[INFO] Usuário com PID %d já está registrado.\n", pid);
             return -1;
         }
     }
-
+    pthread_mutex_lock(&mutex_utilizadores);
     //Posso usar o valor de num_users diretamente
         strcpy(utilizadores[num_users].nome, nome_user);
             utilizadores[num_users].pid = pid;
             utilizadores[num_users].ativo = 1;
             num_users++;
-
+    pthread_mutex_unlock(&mutex_utilizadores);
      //Adiciona a primeira vaga inativo       
     /*for (int i = 0; i < MAX_USERS; i++) { 
         if (!utilizadores[i].ativo) {
@@ -54,7 +54,7 @@ int adicionar_user(const char* nome_user, int pid) {
                     }
                 }
             }
-    pthread_mutex_unlock(&mutex_utilizadores);
+    
     return 0;
 }
 //Listar Utilizadores
@@ -77,7 +77,7 @@ int remover_user(const char* nome_user) {
     RESPOSTA r = {.type = 1};       
     printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
 
-    pthread_mutex_unlock(&mutex_utilizadores);
+
     //Verifica se esta registado
     for (int i = 0; i < num_users; i++) {
         if (utilizadores[i].ativo && strcmp(utilizadores[i].nome, nome_user) == 0) {
@@ -90,6 +90,7 @@ int remover_user(const char* nome_user) {
             //printf("ENVIEI... '%s' (%d)\n", r.str,res);
             printf("[INFO] Disconectar: '%s'\n", utilizadores[i].nome);  
             //remover User
+            pthread_mutex_lock(&mutex_utilizadores); //mutex lock
             utilizadores[i].ativo = 0;
             utilizadores[i].pid = 0;
               
@@ -99,6 +100,7 @@ int remover_user(const char* nome_user) {
                 utilizadores[j] = utilizadores[j + 1];
             }
             num_users--;  
+            pthread_mutex_unlock(&mutex_utilizadores); // mutex unlock
             //Informar todos os users conectados sobre a desconexao
             for (int j = 0; j < num_users; j++){
                 if (utilizadores[j].ativo){
@@ -114,7 +116,6 @@ int remover_user(const char* nome_user) {
                     }
                 }
             }
-            pthread_mutex_unlock(&mutex_utilizadores);
             return 0; 
         }
     }

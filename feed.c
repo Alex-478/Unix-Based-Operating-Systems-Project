@@ -4,10 +4,14 @@ Trocar pid_usuario por pid_user
 funçao para receber msg cliente
 Fazer sistema de tempo
 
+Quando alguem subscreve envia msg para todos os subscritos
+
  enviar_mensagem_cliente!! alterar nome
 
 
 ??enviar uma msg de cada vez ou enviar o topico todo?
+
+
 */
 
 
@@ -96,7 +100,7 @@ int main(int argc, char *argv[]){
                      res = read(fd_cli, &m, sizeof(MSG_USER));
                 }} */
                
-                char buffer[1024];
+                char buffer[2048];
                 res = read(fd_cli, buffer, sizeof(buffer)); 
                 printf("[DEBUG] leu bufer\n");
 
@@ -107,11 +111,18 @@ int main(int argc, char *argv[]){
                     memcpy(&r, buffer, sizeof(RESPOSTA)); // Copia todos os bytes para a estrutura RESPOSTA
                     printf("Recebi RESPOSTA: %s\n", r.str);
                 } else if (type == 2) {
-                   memcpy(&m, buffer, sizeof(MSG_USER)); // Copia todos os bytes para a estrutura MSG_USER
+                    memcpy(&m, buffer, sizeof(MSG_USER)); // Copia todos os bytes para a estrutura MSG_USER
                     printf("Recebi MSG_USER: %s\n", m.corpo);
+                    printf("[DEBUG] MSG_USER:\n");
+                    printf("  Nome Tópico: %s\n", m.nome_topico);
+                    printf("  Utilizador: %s\n", m.utilizador);
+                    printf("  Corpo: %s\n", m.corpo);
                             //printf("RECEBI...\n '%s' (%d)\n", r.str, res);
                         }
                 }
+
+                buffer[0] = '\0';
+
         } 
         }    
     }while(strcmp(r.str, "fim")!=0 && strcmp(p.str,"fim")!=0 ); //adicionar o fim do teclado do user

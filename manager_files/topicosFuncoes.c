@@ -139,7 +139,7 @@ void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
             // Verifica se o User está subscrito
             for (int j = 0; j < topicos[i].num_subscritores; j++) {
                 if (topicos[i].subscritores[j] == pid_usuario) {
-                   //pthread_mutex_lock(&mutex_topicos);
+                   pthread_mutex_lock(&mutex_topicos);
                     // Remove o subscritor deslocando os elementos para preencher o espaço vazio
                     for (int k = j; k < topicos[i].num_subscritores - 1; k++) {
                         topicos[i].subscritores[k] = topicos[i].subscritores[k + 1];
@@ -152,7 +152,7 @@ void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
                     enviar_mensagem_cliente(pid_usuario, mensagem);
                     //Elimina topico se ja tiver sem users e msgs
                     eliminar_topico(nome_topico); 
-                    //pthread_mutex_unlock(&mutex_topicos);
+                    pthread_mutex_unlock(&mutex_topicos);
                     return;
                 }
             }
@@ -186,7 +186,7 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
                 printf("[ERRO] O tópico '%s' atingiu o limite de subscritores.\n", nome_topico);
                 return; // Limite atingido
             }
-            
+            pthread_mutex_lock(&mutex_topicos);
             // Adiciona o User à lista de subscritores
             topicos[i].subscritores[topicos[i].num_subscritores] = pid_usuario;
             topicos[i].num_subscritores++;
@@ -196,8 +196,13 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
             //Enviar mensagens Guardadas
             for(int k = 0; k < topicos[i].num_mensagens; k++ ){
                 enviar_msg_subscritos(topicos[i].mensagens[k].utilizador ,topicos[i].nome, topicos[i].mensagens[k].corpo);
-            }
+                //!!
+                //enviar so para um user que subscreveu
 
+
+
+            }
+            pthread_mutex_unlock(&mutex_topicos);
             return; // Sucesso
         }
     }
@@ -218,6 +223,7 @@ void criarTopico(const char* nome){
             return;
         }
     }  
+    pthread_mutex_lock(&mutex_topicos);
     //printf("[DEBUG] Variavel nome com: '%s'\n", nome);   
     strcpy(topicos[num_topicos].nome, nome);
     //printf("[DEBUG] Tópico '%s' criado com sucesso com num '%d'.\n", topicos[num_topicos].nome, num_topicos);
@@ -227,7 +233,7 @@ void criarTopico(const char* nome){
 
     printf("[INFO] Tópico '%s' criado com sucesso.\n", topicos[num_topicos].nome);
     num_topicos++;
-    
+    pthread_mutex_unlock(&mutex_topicos);
     return;
 }
 int verificar_topico(const char* nome_topico) {
