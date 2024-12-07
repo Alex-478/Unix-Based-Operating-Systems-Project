@@ -7,6 +7,10 @@ int num_users = 0;
 TOPICO topicos[MAX_TOPICOS];
 int num_topicos = 0;
 
+pthread_mutex_t mutex_topicos = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_msg = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_utilizadores = PTHREAD_MUTEX_INITIALIZER;
+
 
 int main(){
     TDATA pdados[3];
@@ -23,16 +27,20 @@ int main(){
     mkfifo(FIFO_SRV,0600);
     fd = open(FIFO_SRV,O_RDWR); // ?? posso passar isto para dentro da thread
 
-    carregar_mensagens("manager_files/msg.bin");
+    carregar_mensagens("manager_files/msg.txt");
+
+    
 
     //Thread le os comandos admin
     pdados[0].pfd = &fd;
     pdados[0].pcontinuar = &continuar; //?? porque usar referencia
     pthread_create(&thread_id[0], NULL, thread_admin, (void *) &pdados[0]);
+
     //Thread le o pipe
     pdados[1].pfd = &fd;
     pdados[1].pcontinuar = &continuar;
     pthread_create(&thread_id[1], NULL, thread_le_pipe, (void *) &pdados[1] );
+
     //Contar o tempo
     pdados[2].pfd = &fd;
     pdados[2].pcontinuar = &continuar;
@@ -42,7 +50,7 @@ int main(){
     pthread_join(thread_id[1], NULL); //Aguarda Thread Pipe
     pthread_join(thread_id[2], NULL); //Aguarda Thread Tempo
 
-    armazena_mensagens("manager_files/msg.bin");
+    armazena_mensagens("manager_files/msg.txt");
 
     close (fd);
     unlink(FIFO_SRV);
@@ -96,10 +104,19 @@ void *thread_admin(void *pdata){
         printf("ADMIN> ");
         fflush(stdout);
 
-        fgets(str, sizeof(str), stdin);
-        str[strcspn(str, "\n")] = '\0'; 
+        if (fgets(str, sizeof(str), stdin)) {
+            str[strcspn(str, "\n")] = '\0'; 
+            if (strlen(str) > 0) { 
+                printf("[DEBUG] Entrada: '%s'\n", str);
+                processar_palavras_admin(str, fifo);
+            }
+        } else {
+        printf("[ERRO] Problema ao ler entrada ou EOF atingido.\n");
+        break; 
+        }
 
-        processar_palavras_admin(str, fifo);
+
+        
         //printf("[DEBUG]Ciclo thread admin.\n");    
     }while ( strcmp(str, "quit") !=0);
 

@@ -4,7 +4,8 @@
 void listar_topicos_para_cliente(int fd_cliente) {
     char buffer[1024] = ""; 
     char estado[15];  
-    RESPOSTA resposta;     
+    RESPOSTA resposta = {.type = 1};       
+    printf("[DEBUG]--Resposta type inteiro: %d", resposta.type);  
 
     if (num_topicos == 0) {
         //snprintf(buffer, sizeof(buffer), "[INFO] Não existem tópicos no momento.\n");
@@ -130,13 +131,15 @@ void eliminar_topico(const char* nome_topico) {
 }
 //remove subscrição Topico
 void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
+     //bloquear mutex
      char mensagem[200];    
     // Verifica se o tópico existe
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, nome_topico) == 0) {
-            // Verifica se o usuário está subscrito
+            // Verifica se o User está subscrito
             for (int j = 0; j < topicos[i].num_subscritores; j++) {
                 if (topicos[i].subscritores[j] == pid_usuario) {
+                   //pthread_mutex_lock(&mutex_topicos);
                     // Remove o subscritor deslocando os elementos para preencher o espaço vazio
                     for (int k = j; k < topicos[i].num_subscritores - 1; k++) {
                         topicos[i].subscritores[k] = topicos[i].subscritores[k + 1];
@@ -149,12 +152,13 @@ void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
                     enviar_mensagem_cliente(pid_usuario, mensagem);
                     //Elimina topico se ja tiver sem users e msgs
                     eliminar_topico(nome_topico); 
+                    //pthread_mutex_unlock(&mutex_topicos);
                     return;
                 }
             }
 
-            // Se o usuário não está subscrito
-            printf("[ERRO] Usuário (PID: %d) não está subscrito no tópico '%s'.\n", pid_usuario, nome_topico);
+            // Se o User não está subscrito
+            printf("[ERRO] User (PID: %d) não está subscrito no tópico '%s'.\n", pid_usuario, nome_topico);
             return;
         }
     }
@@ -167,10 +171,10 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
     // Verifica se o tópico existe
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, nome_topico) == 0) {
-            // Verifica se o usuário já está subscrito
+            // Verifica se o User já está subscrito
             for (int j = 0; j < topicos[i].num_subscritores; j++) {
                 if (topicos[i].subscritores[j] == pid_usuario) {
-                    printf("[INFO] Usuário (PID: %d) já está subscrito no tópico '%s'.\n", pid_usuario, nome_topico);
+                    printf("[INFO] User (PID: %d) já está subscrito no tópico '%s'.\n", pid_usuario, nome_topico);
                     snprintf(mensagem, sizeof(mensagem),  "[INFO] Já te encontras subscrito no tópico '%s'.\n", nome_topico);
                     enviar_mensagem_cliente(pid_usuario, mensagem);
                     return;
@@ -183,10 +187,10 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
                 return; // Limite atingido
             }
             
-            // Adiciona o usuário à lista de subscritores
+            // Adiciona o User à lista de subscritores
             topicos[i].subscritores[topicos[i].num_subscritores] = pid_usuario;
             topicos[i].num_subscritores++;
-            printf("[INFO] Usuário (PID: %d) subscrito ao tópico '%s' com sucesso.\n", pid_usuario, nome_topico);
+            printf("[INFO] User (PID: %d) subscrito ao tópico '%s' com sucesso.\n", pid_usuario, nome_topico);
             snprintf(mensagem, sizeof(mensagem), "[INFO] Subscrito ao tópico '%s' com sucesso.\n", nome_topico);
             enviar_mensagem_cliente(pid_usuario, mensagem);
             //Enviar mensagens Guardadas

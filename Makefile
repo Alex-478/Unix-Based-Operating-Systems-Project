@@ -12,9 +12,9 @@ FEED_SRC = feed.c
 # Cabeçalhos compartilhados
 HEADERS = util.h	$(MANAGER_DIR)/manager_util.h
 
-# Compilador e flags
+# Compilador e flags, flag i para ficheiros .h
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -I. -I$(MANAGER_DIR)
+CFLAGS = -Wall -Wextra -std=c99 -I. -I$(MANAGER_DIR) 
 
 # Regra padrão: compilar ambos os executáveis
 all: $(MANAGER_EXEC) $(FEED_EXEC)
@@ -30,6 +30,8 @@ $(FEED_EXEC): $(FEED_SRC) $(HEADERS)
 # Limpar os arquivos gerados
 clean:
 	rm -f $(MANAGER_EXEC) $(FEED_EXEC)
+
+# rm *.o
 
 # Regra "phony" para garantir que clean seja sempre executado
 .PHONY: all clean

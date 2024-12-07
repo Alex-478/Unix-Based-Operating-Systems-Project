@@ -17,9 +17,11 @@ int main(int argc, char *argv[]){
     int fd, res;
     PEDIDO p;
     RESPOSTA r;
+    MSG_USER m;
     char fifo[40];
     int fd_cli, n;
     fd_set fds;
+    int type;
 
     // Verificar se o nome do usuário foi passado como argumento
     if (argc != 2) {
@@ -83,14 +85,35 @@ int main(int argc, char *argv[]){
                 }
                 
             }
-            else if(FD_ISSET(fd_cli, &fds)){        //select pipe
-                res = read(fd_cli, &r, sizeof(int));
+            else if(FD_ISSET(fd_cli, &fds)){
+                /*res = read(fd_cli, &type, sizeof(int));        //select pipe
+                if (res == sizeof(int)) {
+                printf("[DEBUG] leu inteiro: %d\n", type);
+                if(type == 1){
+                     res = read(fd_cli, &r, sizeof(RESPOSTA));
+                }
+                 if(type == 2){
+                     res = read(fd_cli, &m, sizeof(MSG_USER));
+                }} */
+               
+                char buffer[1024];
+                res = read(fd_cli, buffer, sizeof(buffer)); 
+                printf("[DEBUG] leu bufer\n");
 
-
-                res = read(fd_cli, &r, sizeof(RESPOSTA));
-                printf("RECEBI...\n '%s' (%d)\n", r.str, res);
-            }
-        }     
+                if (res >= sizeof(int)) {
+                int type = *(int*)buffer; // Extraia o inteiro
+                printf("[DEBUG] leu inteiro: %d\n", type);
+                if (type == 1) {
+                    memcpy(&r, buffer, sizeof(RESPOSTA)); // Copia todos os bytes para a estrutura RESPOSTA
+                    printf("Recebi RESPOSTA: %s\n", r.str);
+                } else if (type == 2) {
+                   memcpy(&m, buffer, sizeof(MSG_USER)); // Copia todos os bytes para a estrutura MSG_USER
+                    printf("Recebi MSG_USER: %s\n", m.corpo);
+                            //printf("RECEBI...\n '%s' (%d)\n", r.str, res);
+                        }
+                }
+        } 
+        }    
     }while(strcmp(r.str, "fim")!=0 && strcmp(p.str,"fim")!=0 ); //adicionar o fim do teclado do user
     
     close(fd);

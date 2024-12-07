@@ -1,11 +1,12 @@
 #include "../util.h"
 #include "manager_util.h"
-//Adicionar Usuario
-int adicionar_user(const char* nome_usuario, int pid) {
+//Adicionar User
+int adicionar_user(const char* nome_user, int pid) {
     int fd_cli, res;
     char fifo[40];
-    RESPOSTA r;
-
+    RESPOSTA r = {.type = 1};       
+    printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
+    pthread_mutex_lock(&mutex_utilizadores);
 
     //verifica se o num de usarios atingio o MAX
     if (num_users >= MAX_USERS) {
@@ -14,7 +15,7 @@ int adicionar_user(const char* nome_usuario, int pid) {
     }
     //Verifica se usuario já existe, se já alter o PID
     for (int i = 0; i < MAX_USERS; i++) {
-        if (utilizadores[i].ativo && strcmp(utilizadores[i].nome, nome_usuario) == 0) {  //podemos verificar se esta ativo 
+        if (utilizadores[i].ativo && strcmp(utilizadores[i].nome, nome_user) == 0) {  //podemos verificar se esta ativo 
             utilizadores[i].pid = pid;                                                  
             printf("[INFO] Usuário com PID %d já está registrado.\n", pid);
             return -1;
@@ -22,7 +23,7 @@ int adicionar_user(const char* nome_usuario, int pid) {
     }
 
     //Posso usar o valor de num_users diretamente
-        strcpy(utilizadores[num_users].nome, nome_usuario);
+        strcpy(utilizadores[num_users].nome, nome_user);
             utilizadores[num_users].pid = pid;
             utilizadores[num_users].ativo = 1;
             num_users++;
@@ -44,7 +45,7 @@ int adicionar_user(const char* nome_usuario, int pid) {
                     sprintf(fifo, FIFO_CLI, utilizadores[j].pid);  // Formata o nome do pipe do cliente
                     fd_cli = open(fifo, O_WRONLY);             // Abre o pipe para o cliente
                     if (fd_cli != -1) {
-                        snprintf(r.str, sizeof(r.str), "O usuário '%s' conectou.", nome_usuario);
+                        snprintf(r.str, sizeof(r.str), "O usuário '%s' conectou.", nome_user);
                         res = write(fd_cli, &r, sizeof(RESPOSTA));  // Envia a mensagem
                         close(fd_cli);
                         printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[j].nome, r.str);
@@ -53,7 +54,7 @@ int adicionar_user(const char* nome_usuario, int pid) {
                     }
                 }
             }
-
+    pthread_mutex_unlock(&mutex_utilizadores);
     return 0;
 }
 //Listar Utilizadores
@@ -69,15 +70,17 @@ void listar_users() {
     }
 return;
 }
-//Remover Usuario
-int remover_user(const char* nome_usuario) {
+//Remover User
+int remover_user(const char* nome_user) {
     int fd_cli, res;
     char fifo[40];
-    RESPOSTA r;
+    RESPOSTA r = {.type = 1};       
+    printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
 
+    pthread_mutex_unlock(&mutex_utilizadores);
     //Verifica se esta registado
     for (int i = 0; i < num_users; i++) {
-        if (utilizadores[i].ativo && strcmp(utilizadores[i].nome, nome_usuario) == 0) {
+        if (utilizadores[i].ativo && strcmp(utilizadores[i].nome, nome_user) == 0) {
             //Enviar fim para terminar user
             sprintf(fifo, FIFO_CLI, utilizadores[i].pid);
             fd_cli = open(fifo, O_WRONLY);
@@ -86,11 +89,11 @@ int remover_user(const char* nome_usuario) {
             close(fd_cli);
             //printf("ENVIEI... '%s' (%d)\n", r.str,res);
             printf("[INFO] Disconectar: '%s'\n", utilizadores[i].nome);  
-            //remover usuario
+            //remover User
             utilizadores[i].ativo = 0;
             utilizadores[i].pid = 0;
               
-            printf("[INFO] Usuário '%s' removido.\n", nome_usuario);       
+            printf("[INFO] Usuário '%s' removido.\n", nome_user);       
             
             for (int j = i; j < num_users - 1; j++) {
                 utilizadores[j] = utilizadores[j + 1];
@@ -102,7 +105,7 @@ int remover_user(const char* nome_usuario) {
                     sprintf(fifo, FIFO_CLI, utilizadores[j].pid);  // Formata o nome do pipe do cliente
                     fd_cli = open(fifo, O_WRONLY);             // Abre o pipe para o cliente
                     if (fd_cli != -1) {
-                        snprintf(r.str, sizeof(r.str), "O usuário '%s' desconectou.", nome_usuario);
+                        snprintf(r.str, sizeof(r.str), "O usuário '%s' desconectou.", nome_user);
                         res = write(fd_cli, &r, sizeof(RESPOSTA));  // Envia a mensagem
                         close(fd_cli);
                         printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[j].nome, r.str);
@@ -111,9 +114,10 @@ int remover_user(const char* nome_usuario) {
                     }
                 }
             }
+            pthread_mutex_unlock(&mutex_utilizadores);
             return 0; 
         }
     }
-    printf("[ERRO] Usuário '%s' não encontrado.\n", nome_usuario);
+    printf("[ERRO] Usuário '%s' não encontrado.\n", nome_user);
     return 0;
 }

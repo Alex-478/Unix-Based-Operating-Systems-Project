@@ -42,3 +42,7 @@ extern UTILIZADOR utilizadores[MAX_USERS];
 extern int num_users;
 extern TOPICO topicos[MAX_TOPICOS];
 extern int num_topicos;
+
+extern pthread_mutex_t mutex_topicos; 
+extern pthread_mutex_t mutex_utilizadores;
+extern pthread_mutex_t mutex_msg;

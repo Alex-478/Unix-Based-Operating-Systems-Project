@@ -19,6 +19,7 @@
 #define MAX_TOPICOS 20
 #define MAX_MSG_PERSISTENTES 5
 #define TAM_MSG 300
+#define TYPE_RESPOSTA = 1;
 
 typedef struct {
     int *pfd;
@@ -37,9 +38,16 @@ typedef struct{
 }PEDIDO;
 
 typedef struct{
-        int type;
-        char str[1024]; //TAM
+        const int type; // type 1
+        char str[TAM_MSG]; //TAM
 }RESPOSTA;
+
+typedef struct{
+    const int type; // type 2
+    char nome_topico[TAM]; 
+    char utilizador[TAM];
+    char corpo[TAM_MSG];
+}MSG_USER;
 
 typedef struct {
     char utilizador[TAM];
@@ -64,6 +72,7 @@ typedef struct {
     int subscritores[MAX_USERS];        // PIDs dos usuários subscritos
     int num_subscritores;               // Número de subscritores
 } TOPICO;
+
 
 
 #endif

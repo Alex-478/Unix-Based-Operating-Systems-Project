@@ -7,7 +7,7 @@ void carregar_mensagens(const char* nome_ficheiro) {
         return;
     }
 
-    MENSAGEM_FICH msg_fich;
+    /*MENSAGEM_FICH msg_fich;
     while (fread(&msg_fich, sizeof(MENSAGEM_FICH), 1, ficheiro) == 1) {
         // Cria o tópico 
         criarTopico(msg_fich.nome_topico);
@@ -15,6 +15,28 @@ void carregar_mensagens(const char* nome_ficheiro) {
         guardar_mensagem(msg_fich.utilizador,msg_fich.nome_topico, msg_fich.corpo, msg_fich.duracao);
         printf("[INFO] Mensagem recuperada no tópico [%s]%s: %s\n", msg_fich.nome_topico, msg_fich.utilizador, msg_fich.corpo);
         
+    }*/
+
+
+    char linha[512];
+    while (fgets(linha, sizeof(linha), ficheiro)) {
+        TOPICO tAux;
+
+        // Lê os dados formatados
+      sscanf(linha, "%s %s %d %s[^\n]", 
+       tAux.nome,  
+       tAux.mensagens[0].utilizador,  
+       &tAux.mensagens[0].duracao,    
+        tAux.mensagens[0].corpo);    
+
+        // Cria o tópico, se necessário
+        criarTopico(tAux.nome);
+
+        // Adiciona a mensagem ao tópico
+        guardar_mensagem(tAux.mensagens[0].utilizador, tAux.nome, tAux.mensagens[0].corpo, tAux.mensagens[0].duracao);
+
+        printf("[INFO] Mensagem recuperada no tópico [%s]%s: %s\n",
+               tAux.nome, tAux.mensagens[0].utilizador, tAux.mensagens[0].corpo);
     }
 
     fclose(ficheiro);
@@ -30,6 +52,7 @@ void armazena_mensagens(const char* nome_ficheiro) {
 
     for (int i = 0; i < num_topicos; i++) {
         for (int j = 0; j < topicos[i].num_mensagens; j++) {
+            /*
             MENSAGEM_FICH msg_fich;
 
             //Preenche os dados
@@ -50,7 +73,16 @@ void armazena_mensagens(const char* nome_ficheiro) {
 
             //Escreve no ficheiro
             fwrite(&msg_fich, sizeof(MENSAGEM_FICH), 1, ficheiro);
+            */
+            int duracao;    
+            // Preenche os dados
+            time_t agora = time(NULL);
+            duracao = topicos[i].mensagens[j].duracao - (agora - topicos[i].mensagens[j].timestamp);
 
+            // Escreve em formato texto
+            fprintf(ficheiro, "%s %s %d %s\n", topicos[i].nome,
+                    topicos[i].mensagens[j].utilizador, duracao, 
+                    topicos[i].mensagens[j].corpo);
         }
     }
 
@@ -67,7 +99,8 @@ void atualizar_mensagens() {
             // Verifica se a mensagem expirou
             if (agora - topicos[i].mensagens[j].timestamp >= topicos[i].mensagens[j].duracao) {
                 printf("[INFO] Mensagem expirada no tópico '%s': %s\n", topicos[i].nome, topicos[i].mensagens[j].corpo);
-
+                pthread_mutex_lock(&mutex_msg);
+    
                 // Remove a mensagem (movendo as seguintes para a esquerda)
                 for (int k = j; k < topicos[i].num_mensagens - 1; k++) {
                     topicos[i].mensagens[k] = topicos[i].mensagens[k + 1];
@@ -75,14 +108,18 @@ void atualizar_mensagens() {
 
                 topicos[i].num_mensagens--; // Decrementa o contador de mensagens
                 j--; // Reajusta o índice para verificar a nova mensagem na posição
+                pthread_mutex_lock(&mutex_msg);
             }
         }
     }
+  return;  
 }
 
 void guardar_mensagem(const char* nome_user, const char* topico, const char* mensagem, int duracao) {
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, topico) == 0) { 
+            pthread_mutex_lock(&mutex_msg);
+
             // Verifica se o limite de msg
             if (topicos[i].num_mensagens >= 100) {
                 printf("[ERRO] O tópico '%s' atingiu o limite de mensagens.\n", topico);
@@ -99,6 +136,7 @@ void guardar_mensagem(const char* nome_user, const char* topico, const char* men
             topicos[i].num_mensagens++;
 
             printf("[INFO] Mensagem armazenada no tópico '%s': %s (Duração: %d segundos)\n", topico, mensagem, duracao);
+            pthread_mutex_unlock(&mutex_msg);
             return;
         }
     }
@@ -109,11 +147,21 @@ void guardar_mensagem(const char* nome_user, const char* topico, const char* men
 
 void enviar_msg_subscritos(const char* nome_user, const char* topico, const char* mensagem) {
     char fifo[40];
-    MENSAGEM msg;
+    MSG_USER msg = {.type = 2};
     int fd;
+    strcpy(msg.corpo, mensagem);
+    strcpy(msg.nome_topico, topico);
+    strcpy(msg.utilizador, nome_user);
+    printf("[DEBUG] Entrou no enviar msg subscritos");
+
+    printf("[DEBUG] MSG_USER:\n");
+    printf("  Type: %d\n", msg.type);
+    printf("  Nome Tópico: %s\n", msg.nome_topico);
+    printf("  Utilizador: %s\n", msg.utilizador);
+    printf("  Corpo: %s\n", msg.corpo);
 
     // Formata a mensagem para incluir o tópico
-    snprintf(msg.corpo, sizeof(msg.corpo), "[%s]%s: %s", topico, nome_user, mensagem);
+    //snprintf(msg.corpo, sizeof(msg.corpo), "[%s]%s: %s", topico, nome_user, mensagem);
     // Percorre todos os tópicos para encontrar o correspondente
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, topico) == 0) { // Verifica se é o tópico correto
@@ -121,7 +169,7 @@ void enviar_msg_subscritos(const char* nome_user, const char* topico, const char
             for (int j = 0; j < topicos[i].num_subscritores; j++) {
                 int pid_usuario = topicos[i].subscritores[j];
 
-                // Verifica se o usuário está ativo
+                // Verifica se o User está ativo
                 for (int k = 0; k < MAX_USERS; k++) {
                     if (utilizadores[k].ativo && utilizadores[k].pid == pid_usuario) {
                         // Abre o FIFO do cliente
@@ -132,7 +180,7 @@ void enviar_msg_subscritos(const char* nome_user, const char* topico, const char
                         }
 
                         // Escreve a mensagem no FIFO
-                        if (write(fd, &msg, sizeof(MENSAGEM)) < 0) {
+                        if (write(fd, &msg, sizeof(MSG_USER)) < 0) {
                             printf("[ERRO] Falha ao enviar mensagem para %s.\n", utilizadores[k].nome);
                         } else {
                             printf("[INFO] Mensagem enviada para %s: %s\n", utilizadores[k].nome, msg.corpo);
@@ -213,8 +261,8 @@ void processar_messagem_utilizador(PEDIDO p) {
 void enviar_mensagem_cliente(int pid, const char* mensagem) { // !! alterar nome
     char fifo[40];        
     int fd_cli;              
-    RESPOSTA resposta;       
-
+    RESPOSTA resposta = {.type = 1};       
+    printf("[DEBUG]--Resposta type inteiro: %d\n", resposta.type);
     sprintf(fifo, FIFO_CLI, pid);
     fd_cli = open(fifo, O_WRONLY);
     snprintf(resposta.str, sizeof(resposta.str), "%s", mensagem);
