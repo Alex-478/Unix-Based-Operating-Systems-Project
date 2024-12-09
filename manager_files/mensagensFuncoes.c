@@ -147,10 +147,11 @@ void guardar_mensagem(const char* nome_user, const char* topico, const char* men
 
 void enviar_msg_subscritos(const char* nome_user, const char* topico, const char* mensagem) {
     char fifo[40];
+    int fd;
     MSG_USER msg;
     
     // = {.type = 2};
-    int fd;
+    
     strncpy(msg.corpo, mensagem, sizeof(msg.corpo) - 1);
     msg.corpo[sizeof(msg.corpo) - 1] = '\0'; 
     strcpy(msg.nome_topico, topico);
@@ -264,7 +265,7 @@ void processar_messagem_utilizador(PEDIDO p) {
 
    return;     
 }
-void enviar_mensagem_cliente(int pid, const char* mensagem) { // !! alterar nome
+void enviar_resposta_cliente(int pid, const char* mensagem) { // !! alterar nome
     char fifo[40];        
     int fd_cli;              
     MSGSTRUCT msgs;

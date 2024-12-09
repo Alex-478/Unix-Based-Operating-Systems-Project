@@ -1,6 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -23,10 +24,6 @@
 #define TIPO_RESPOSTA 1
 #define TIPO_MSG_USER 2
 
-typedef struct {
-    int *pfd;
-    int *pcontinuar; 
-} TDATA;
 
 typedef struct {
     char nome[TAM]; //nome usuario quando executa o feed
@@ -58,32 +55,6 @@ typedef struct{
         MSG_USER msg_user;
     } conteudo;
 }MSGSTRUCT;
-
-
-typedef struct {
-    char utilizador[TAM];
-    char corpo[TAM_MSG];
-    int duracao;        // Em segundos
-    time_t timestamp;  // Momento em que a mensagem foi enviada
-} MENSAGEM;
-
-typedef struct {
-    char utilizador[TAM];
-    char nome_topico[TAM];   
-    char corpo[TAM_MSG];        
-    int duracao;            
-    time_t timestamp;       
-} MENSAGEM_FICH;
-
-typedef struct {
-    char nome[TAM];                     // Nome do tópico
-    MENSAGEM mensagens[MAX_MSG_PERSISTENTES];  // Mensagens persistentes
-    int num_mensagens;                  // Quantidade de mensagens armazenadas
-    int bloqueado;                      // 1 = bloqueado, 0 = desbloqueado
-    int subscritores[MAX_USERS];        // PIDs dos usuários subscritos
-    int num_subscritores;               // Número de subscritores
-} TOPICO;
-
 
 
 #endif

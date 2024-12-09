@@ -152,7 +152,7 @@ void remove_subscricao_topico(const char* nome_topico, int pid_user) {
                     topicos[i].num_subscritores--;
                     printf("[INFO] Utilizador (PID: %d) removido do tópico '%s'.\n", pid_user, nome_topico);
                     snprintf(mensagem, sizeof(mensagem),  "[INFO] Subscrição removida do tópico '%s'.\n", nome_topico);
-                    enviar_mensagem_cliente(pid_user, mensagem);
+                    enviar_resposta_cliente(pid_user, mensagem);
                     //Elimina topico se ja tiver sem users e msgs
                     eliminar_topico(nome_topico); 
                     pthread_mutex_unlock(&mutex_topicos);
@@ -171,6 +171,8 @@ void remove_subscricao_topico(const char* nome_topico, int pid_user) {
 //Subscreve Topico
 void subscreveTopico(const char* nome_topico, int pid_user){
     char mensagem[200];
+    MSGSTRUCT msgs;
+    msgs.type = TIPO_MSG_USER;
     // Verifica se o tópico existe
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, nome_topico) == 0) {
@@ -179,7 +181,7 @@ void subscreveTopico(const char* nome_topico, int pid_user){
                 if (topicos[i].subscritores[j] == pid_user) {
                     printf("[INFO] User (PID: %d) já está subscrito no tópico '%s'.\n", pid_user, nome_topico);
                     snprintf(mensagem, sizeof(mensagem),  "[INFO] Já te encontras subscrito no tópico '%s'.\n", nome_topico);
-                    enviar_mensagem_cliente(pid_user, mensagem);
+                    enviar_resposta_cliente(pid_user, mensagem);
                     return;
                 }
             }
@@ -194,16 +196,23 @@ void subscreveTopico(const char* nome_topico, int pid_user){
             topicos[i].subscritores[topicos[i].num_subscritores] = pid_user;
             topicos[i].num_subscritores++;
             printf("[INFO] User (PID: %d) subscrito ao tópico '%s' com sucesso.\n", pid_user, nome_topico);
-            snprintf(mensagem, sizeof(mensagem), "[INFO] Subscrito ao tópico '%s' com sucesso.\n", nome_topico);
-            enviar_mensagem_cliente(pid_user, mensagem);
+            snprintf(mensagem, sizeof(mensagem), "[INFO] Subscrito ao tópico '%s' com sucesso.", nome_topico);
+            enviar_resposta_cliente(pid_user, mensagem);
             //Enviar mensagens Guardadas
             for(int k = 0; k < topicos[i].num_mensagens; k++ ){
-                enviar_msg_subscritos(topicos[i].mensagens[k].utilizador ,topicos[i].nome, topicos[i].mensagens[k].corpo);
+                //enviar_msg_subscritos(topicos[i].mensagens[k].utilizador ,topicos[i].nome, topicos[i].mensagens[k].corpo);
                 //!!
                 //enviar so para um user que subscreveu
-
-
-
+                strcpy(msgs.conteudo.msg_user.nome_topico, topicos[i].nome);
+                strcpy(msgs.conteudo.msg_user.utilizador, topicos[i].mensagens[k].utilizador);
+                strcpy(msgs.conteudo.msg_user.corpo, topicos[i].mensagens[k].corpo);
+                
+                char fifo[40];
+                int fd;
+                snprintf(fifo, sizeof(fifo), FIFO_CLI, pid_user);
+                fd = open(fifo, O_WRONLY);
+                write(fd, &msgs, sizeof(MSGSTRUCT));
+                close(fd);
             }
             pthread_mutex_unlock(&mutex_topicos);
             return; // Sucesso
