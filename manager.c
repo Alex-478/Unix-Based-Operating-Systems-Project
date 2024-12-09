@@ -130,7 +130,9 @@ void *thread_admin(void *pdata){
 }
 // Processo comnando admin
 void processar_palavras_admin(char str[TAM], char fifo[40]){
-    RESPOSTA r = {.type = 1};   
+    //RESPOSTA r = {.type = 1};
+    MSGSTRUCT msgs;
+    msgs.type = TIPO_RESPOSTA;   
     int res, fd_cli;
 
             char* tmpWords[10]= {NULL}; 
@@ -147,22 +149,22 @@ void processar_palavras_admin(char str[TAM], char fifo[40]){
             }
             //comando remove "user"
             if(strcmp(tmpWords[0], "remove") == 0){
-                if(tmpWords[1] == NULL) {return;;}
+                if(tmpWords[1] == NULL) {return;}
                 remover_user(tmpWords[1]);
             }
             //comando lock "topico"
             if(strcmp(tmpWords[0], "lock") == 0){
-                if(tmpWords[1] == NULL) {return;;}
+                if(tmpWords[1] == NULL) {return;}
                 bloquear_topico(tmpWords[1]);
             }
             //comando unlock "topico"
             if(strcmp(tmpWords[0], "unlock") == 0){
-                if(tmpWords[1] == NULL) {return;;}
+                if(tmpWords[1] == NULL) {return;}
                 desbloquear_topico(tmpWords[1]);
             }
             //comando show "topico"
             if(strcmp(tmpWords[0], "show") == 0){
-                if(tmpWords[1] == NULL) {return;;}
+                if(tmpWords[1] == NULL) {return;}
                 listar_mensagens_topico(tmpWords[1]); //?? incompleto, receber diferentes tipos de dados
             }
             //comando quit -- termina todos os clientes
@@ -171,11 +173,11 @@ void processar_palavras_admin(char str[TAM], char fifo[40]){
                         if(utilizadores[i].ativo){
                             sprintf(fifo, FIFO_CLI, utilizadores[i].pid);
                             fd_cli = open(fifo, O_WRONLY);
-                            strcpy(r.str, "fim");
-                            res = write( fd_cli, &r, sizeof(RESPOSTA));
+                            strcpy(msgs.conteudo.resposta.str, "fim");
+                            res = write( fd_cli, &msgs, sizeof(MSGSTRUCT));
                             close(fd_cli);
                             //printf("ENVIEI... '%s' (%d)\n", r.str,res);
-                            printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[i].nome, r.str);
+                            printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[i].nome, msgs.conteudo.resposta.str);
                         }
                     }
             }

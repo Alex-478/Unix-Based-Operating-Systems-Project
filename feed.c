@@ -1,15 +1,8 @@
 #include "util.h"
 /*
-Trocar pid_usuario por pid_user
-funçao para receber msg cliente
-Fazer sistema de tempo
 
 Quando alguem subscreve envia msg para todos os subscritos
 
- enviar_mensagem_cliente!! alterar nome
-
-
-??enviar uma msg de cada vez ou enviar o topico todo?
 
 
 */
@@ -20,16 +13,14 @@ int main(int argc, char *argv[]){
     //char temp[10];
     int fd, res;
     PEDIDO p;
-    RESPOSTA r;
-    MSG_USER m;
+    MSGSTRUCT mensagem_recebida;
     char fifo[40];
     int fd_cli, n;
     fd_set fds;
-    int type;
-
+   
     // Verificar se o nome do usuário foi passado como argumento
     if (argc != 2) {
-        printf("[ERRO] Uso: %s <nome_usuario>\n", argv[0]);
+        printf("[ERRO] Uso: %s <nome_user>\n", argv[0]);
         exit(1);
     }
     
@@ -85,7 +76,7 @@ int main(int argc, char *argv[]){
  
                 res = write (fd, &p,sizeof(PEDIDO)); //envia para o manager
                 if(res == sizeof(PEDIDO) ){
-                    printf("ENVIEI... '%s' (%d)\n", p.str, res);  //Debug
+                    printf("[SEND] '%s' (%d)\n", p.str, res);  //Debug
                 }
                 
             }
@@ -99,7 +90,7 @@ int main(int argc, char *argv[]){
                  if(type == 2){
                      res = read(fd_cli, &m, sizeof(MSG_USER));
                 }} */
-               
+               /*
                 char buffer[2048];
                 res = read(fd_cli, buffer, sizeof(buffer)); 
                 printf("[DEBUG] leu bufer\n");
@@ -120,12 +111,31 @@ int main(int argc, char *argv[]){
                             //printf("RECEBI...\n '%s' (%d)\n", r.str, res);
                         }
                 }
+                 buffer[0] = '\0';*/
 
-                buffer[0] = '\0';
-
+                //---------------------
+                 
+                res = read(fd_cli, &mensagem_recebida, sizeof(MSGSTRUCT));
+                if (res > 0) {
+                if(mensagem_recebida.type == TIPO_RESPOSTA ){
+                    printf("\n%s\n", mensagem_recebida.conteudo.resposta.str);
+                }
+               if(mensagem_recebida.type == TIPO_MSG_USER ){
+                    printf("\n[%s] %s: %s\n", 
+                    mensagem_recebida.conteudo.msg_user.nome_topico,
+                    mensagem_recebida.conteudo.msg_user.utilizador,
+                    mensagem_recebida.conteudo.msg_user.corpo);
+                    //printf("Recebi uma MSG_USER:\n");
+                    //printf("Topico: %s\n", mensagem_recebida.conteudo.msg_user.nome_topico);
+                    //printf("Utilizador: %s\n", mensagem_recebida.conteudo.msg_user.utilizador);
+                    //printf("Corpo: %s\n", mensagem_recebida.conteudo.msg_user.corpo);
+                }
+                 } else {
+                        perror("[FEED]Erro na leitura do pipe\n");
+                    }
         } 
         }    
-    }while(strcmp(r.str, "fim")!=0 && strcmp(p.str,"fim")!=0 ); //adicionar o fim do teclado do user
+    }while(strcmp(mensagem_recebida.conteudo.resposta.str, "fim")!=0 && strcmp(p.str,"fim")!=0 ); //adicionar o fim do teclado do user
     
     close(fd);
     close(fd_cli);

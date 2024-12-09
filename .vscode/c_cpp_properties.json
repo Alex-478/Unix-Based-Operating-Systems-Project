@@ -15,9 +15,9 @@
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "windows-msvc-x64"
+            
         }
     ],
     "version": 4
-
 }
 

@@ -4,15 +4,18 @@
 void listar_topicos_para_cliente(int fd_cliente) {
     char buffer[1024] = ""; 
     char estado[15];  
-    RESPOSTA resposta = {.type = 1};       
-    printf("[DEBUG]--Resposta type inteiro: %d", resposta.type);  
+    MSGSTRUCT msgs;
+    msgs.type = TIPO_RESPOSTA;
+    
+    //RESPOSTA resposta = {.type = 1};       
+    //printf("[DEBUG]--Resposta type inteiro: %d", resposta.type);  
 
     if (num_topicos == 0) {
         //snprintf(buffer, sizeof(buffer), "[INFO] Não existem tópicos no momento.\n");
         //write(fd_cli, buffer, strlen(buffer)); // Envia a mensagem ao cliente
 
-        snprintf(resposta.str, sizeof(resposta.str), "[INFO] Não existem tópicos no momento.\n");
-        write(fd_cliente, &resposta, sizeof(RESPOSTA)); 
+        snprintf(msgs.conteudo.resposta.str, sizeof(msgs.conteudo.resposta.str), "[INFO] Não existem tópicos no momento.\n");
+        write(fd_cliente, &msgs, sizeof(MSGSTRUCT)); 
         return;
     }
 
@@ -30,15 +33,15 @@ void listar_topicos_para_cliente(int fd_cliente) {
 
 
        
-        if (strlen(buffer) >= sizeof(resposta.str) - 1 || i == num_topicos - 1) {
-            strcpy(resposta.str, buffer);
-            resposta.str[sizeof(resposta.str) - 1] = '\0';
-            write(fd_cliente, &resposta, sizeof(RESPOSTA));
+        if (strlen(buffer) >= sizeof(msgs.conteudo.resposta.str) - 1 || i == num_topicos - 1) {
+            strcpy(msgs.conteudo.resposta.str, buffer);
+            msgs.conteudo.resposta.str[sizeof(msgs.conteudo.resposta.str) - 1] = '\0';
+            write(fd_cliente, &msgs, sizeof(MSGSTRUCT));
             buffer[0] = '\0'; // Limpa o buffer
         }
     }
     //write(fd_cli, buffer, strlen(buffer));
-    write(fd_cliente, &resposta, sizeof(RESPOSTA));
+    write(fd_cliente, &msgs, sizeof(MSGSTRUCT));
 }
 void listar_mensagens_topico(const char* nome_topico) {
     // Verifica se o tópico existe
@@ -130,7 +133,7 @@ void eliminar_topico(const char* nome_topico) {
     return;
 }
 //remove subscrição Topico
-void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
+void remove_subscricao_topico(const char* nome_topico, int pid_user) {
      //bloquear mutex
      char mensagem[200];    
     // Verifica se o tópico existe
@@ -138,7 +141,7 @@ void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
         if (strcmp(topicos[i].nome, nome_topico) == 0) {
             // Verifica se o User está subscrito
             for (int j = 0; j < topicos[i].num_subscritores; j++) {
-                if (topicos[i].subscritores[j] == pid_usuario) {
+                if (topicos[i].subscritores[j] == pid_user) {
                    pthread_mutex_lock(&mutex_topicos);
                     // Remove o subscritor deslocando os elementos para preencher o espaço vazio
                     for (int k = j; k < topicos[i].num_subscritores - 1; k++) {
@@ -147,9 +150,9 @@ void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
                     
                     // Decrementa o número de subscritores
                     topicos[i].num_subscritores--;
-                    printf("[INFO] Utilizador (PID: %d) removido do tópico '%s'.\n", pid_usuario, nome_topico);
+                    printf("[INFO] Utilizador (PID: %d) removido do tópico '%s'.\n", pid_user, nome_topico);
                     snprintf(mensagem, sizeof(mensagem),  "[INFO] Subscrição removida do tópico '%s'.\n", nome_topico);
-                    enviar_mensagem_cliente(pid_usuario, mensagem);
+                    enviar_mensagem_cliente(pid_user, mensagem);
                     //Elimina topico se ja tiver sem users e msgs
                     eliminar_topico(nome_topico); 
                     pthread_mutex_unlock(&mutex_topicos);
@@ -158,7 +161,7 @@ void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
             }
 
             // Se o User não está subscrito
-            printf("[ERRO] User (PID: %d) não está subscrito no tópico '%s'.\n", pid_usuario, nome_topico);
+            printf("[ERRO] User (PID: %d) não está subscrito no tópico '%s'.\n", pid_user, nome_topico);
             return;
         }
     }
@@ -166,17 +169,17 @@ void remove_subscricao_topico(const char* nome_topico, int pid_usuario) {
     return;
 }
 //Subscreve Topico
-void subscreveTopico(const char* nome_topico, int pid_usuario){
+void subscreveTopico(const char* nome_topico, int pid_user){
     char mensagem[200];
     // Verifica se o tópico existe
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, nome_topico) == 0) {
             // Verifica se o User já está subscrito
             for (int j = 0; j < topicos[i].num_subscritores; j++) {
-                if (topicos[i].subscritores[j] == pid_usuario) {
-                    printf("[INFO] User (PID: %d) já está subscrito no tópico '%s'.\n", pid_usuario, nome_topico);
+                if (topicos[i].subscritores[j] == pid_user) {
+                    printf("[INFO] User (PID: %d) já está subscrito no tópico '%s'.\n", pid_user, nome_topico);
                     snprintf(mensagem, sizeof(mensagem),  "[INFO] Já te encontras subscrito no tópico '%s'.\n", nome_topico);
-                    enviar_mensagem_cliente(pid_usuario, mensagem);
+                    enviar_mensagem_cliente(pid_user, mensagem);
                     return;
                 }
             }
@@ -188,11 +191,11 @@ void subscreveTopico(const char* nome_topico, int pid_usuario){
             }
             pthread_mutex_lock(&mutex_topicos);
             // Adiciona o User à lista de subscritores
-            topicos[i].subscritores[topicos[i].num_subscritores] = pid_usuario;
+            topicos[i].subscritores[topicos[i].num_subscritores] = pid_user;
             topicos[i].num_subscritores++;
-            printf("[INFO] User (PID: %d) subscrito ao tópico '%s' com sucesso.\n", pid_usuario, nome_topico);
+            printf("[INFO] User (PID: %d) subscrito ao tópico '%s' com sucesso.\n", pid_user, nome_topico);
             snprintf(mensagem, sizeof(mensagem), "[INFO] Subscrito ao tópico '%s' com sucesso.\n", nome_topico);
-            enviar_mensagem_cliente(pid_usuario, mensagem);
+            enviar_mensagem_cliente(pid_user, mensagem);
             //Enviar mensagens Guardadas
             for(int k = 0; k < topicos[i].num_mensagens; k++ ){
                 enviar_msg_subscritos(topicos[i].mensagens[k].utilizador ,topicos[i].nome, topicos[i].mensagens[k].corpo);

@@ -4,8 +4,10 @@
 int adicionar_user(const char* nome_user, int pid) {
     int fd_cli, res;
     char fifo[40];
-    RESPOSTA r = {.type = 1};       
-    printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
+    //RESPOSTA r = {.type = 1};       
+    //printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
+    MSGSTRUCT msgs;
+    msgs.type = TIPO_RESPOSTA;
     
 
     //verifica se o num de usarios atingio o MAX
@@ -45,10 +47,10 @@ int adicionar_user(const char* nome_user, int pid) {
                     sprintf(fifo, FIFO_CLI, utilizadores[j].pid);  // Formata o nome do pipe do cliente
                     fd_cli = open(fifo, O_WRONLY);             // Abre o pipe para o cliente
                     if (fd_cli != -1) {
-                        snprintf(r.str, sizeof(r.str), "O usuário '%s' conectou.", nome_user);
-                        res = write(fd_cli, &r, sizeof(RESPOSTA));  // Envia a mensagem
+                        snprintf(msgs.conteudo.resposta.str, sizeof(msgs.conteudo.resposta.str), "O usuário '%s' conectou.", nome_user);
+                        res = write(fd_cli, &msgs, sizeof(MSGSTRUCT));  // Envia a mensagem
                         close(fd_cli);
-                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[j].nome, r.str);
+                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[j].nome, msgs.conteudo.resposta.str);
                     } else {
                         printf("[ERRO] Não foi possível abrir o pipe para o %s.\n", utilizadores[j].nome);
                     }
@@ -74,9 +76,10 @@ return;
 int remover_user(const char* nome_user) {
     int fd_cli, res;
     char fifo[40];
-    RESPOSTA r = {.type = 1};       
-    printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
-
+    //RESPOSTA r = {.type = 1};       
+    //printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
+    MSGSTRUCT msgs;
+    msgs.type = TIPO_RESPOSTA;
 
     //Verifica se esta registado
     for (int i = 0; i < num_users; i++) {
@@ -84,8 +87,8 @@ int remover_user(const char* nome_user) {
             //Enviar fim para terminar user
             sprintf(fifo, FIFO_CLI, utilizadores[i].pid);
             fd_cli = open(fifo, O_WRONLY);
-            strcpy(r.str, "fim");
-            res = write( fd_cli, &r, sizeof(RESPOSTA));
+            strcpy(msgs.conteudo.resposta.str, "fim");
+            res = write( fd_cli, &msgs, sizeof(MSGSTRUCT));
             close(fd_cli);
             //printf("ENVIEI... '%s' (%d)\n", r.str,res);
             printf("[INFO] Disconectar: '%s'\n", utilizadores[i].nome);  
@@ -107,10 +110,10 @@ int remover_user(const char* nome_user) {
                     sprintf(fifo, FIFO_CLI, utilizadores[j].pid);  // Formata o nome do pipe do cliente
                     fd_cli = open(fifo, O_WRONLY);             // Abre o pipe para o cliente
                     if (fd_cli != -1) {
-                        snprintf(r.str, sizeof(r.str), "O usuário '%s' desconectou.", nome_user);
-                        res = write(fd_cli, &r, sizeof(RESPOSTA));  // Envia a mensagem
+                        snprintf(msgs.conteudo.resposta.str, sizeof(msgs.conteudo.resposta.str), "O usuário '%s' desconectou.", nome_user);
+                        res = write(fd_cli, &msgs, sizeof(MSGSTRUCT));  // Envia a mensagem
                         close(fd_cli);
-                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[j].nome, r.str);
+                        printf("[INFO] (%d) Mensagem enviada para o %s: '%s'\n", res, utilizadores[j].nome, msgs.conteudo.resposta.str);
                     } else {
                         printf("[ERRO] Não foi possível abrir o pipe para o %s.\n", utilizadores[j].nome);
                     }

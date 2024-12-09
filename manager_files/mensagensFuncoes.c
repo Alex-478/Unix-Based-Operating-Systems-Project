@@ -147,7 +147,9 @@ void guardar_mensagem(const char* nome_user, const char* topico, const char* men
 
 void enviar_msg_subscritos(const char* nome_user, const char* topico, const char* mensagem) {
     char fifo[40];
-    MSG_USER msg = {.type = 2};
+    MSG_USER msg;
+    
+    // = {.type = 2};
     int fd;
     strncpy(msg.corpo, mensagem, sizeof(msg.corpo) - 1);
     msg.corpo[sizeof(msg.corpo) - 1] = '\0'; 
@@ -156,10 +158,13 @@ void enviar_msg_subscritos(const char* nome_user, const char* topico, const char
     printf("[DEBUG] Entrou no enviar msg subscritos\n");
 
     printf("[DEBUG] MSG_USER:\n");
-    printf("  Type: %d\n", msg.type);
     printf("  Nome Tópico: %s\n", msg.nome_topico);
     printf("  Utilizador: %s\n", msg.utilizador);
     printf("  Corpo: %s\n", msg.corpo);
+    
+    MSGSTRUCT msgs;
+    msgs.type = TIPO_MSG_USER;
+    msgs.conteudo.msg_user = msg;
 
     // Formata a mensagem para incluir o tópico
     //snprintf(msg.corpo, sizeof(msg.corpo), "[%s]%s: %s", topico, nome_user, mensagem);
@@ -168,20 +173,20 @@ void enviar_msg_subscritos(const char* nome_user, const char* topico, const char
         if (strcmp(topicos[i].nome, topico) == 0) { // Verifica se é o tópico correto
             // Enviar mensagem para todos os subscritores do tópico
             for (int j = 0; j < topicos[i].num_subscritores; j++) {
-                int pid_usuario = topicos[i].subscritores[j];
+                int pid_user = topicos[i].subscritores[j];
 
                 // Verifica se o User está ativo
                 for (int k = 0; k < MAX_USERS; k++) {
-                    if (utilizadores[k].ativo && utilizadores[k].pid == pid_usuario) {
+                    if (utilizadores[k].ativo && utilizadores[k].pid == pid_user) {
                         // Abre o FIFO do cliente
-                        snprintf(fifo, sizeof(fifo), FIFO_CLI, pid_usuario);
+                        snprintf(fifo, sizeof(fifo), FIFO_CLI, pid_user);
                         fd = open(fifo, O_WRONLY);
                         if (fd < 0) {
                             printf("[ERRO] Não foi possível enviar mensagem para %s.\n", utilizadores[k].nome);
                         }
 
                         // Escreve a mensagem no FIFO
-                        if (write(fd, &msg, sizeof(MSG_USER)) < 0) {
+                        if (write(fd, &msgs, sizeof(MSGSTRUCT)) < 0) {
                             printf("[ERRO] Falha ao enviar mensagem para %s.\n", utilizadores[k].nome);
                         } else {
                             printf("[INFO] Mensagem enviada para %s: %s\n", utilizadores[k].nome, msg.corpo);
@@ -262,17 +267,19 @@ void processar_messagem_utilizador(PEDIDO p) {
 void enviar_mensagem_cliente(int pid, const char* mensagem) { // !! alterar nome
     char fifo[40];        
     int fd_cli;              
-    RESPOSTA resposta = {.type = 1};       
-    printf("[DEBUG]--Resposta type inteiro: %d\n", resposta.type);
+    MSGSTRUCT msgs;
+    msgs.type = TIPO_RESPOSTA;
+    //RESPOSTA resposta = {.type = 1};       
+    //printf("[DEBUG]--Resposta type inteiro: %d\n", resposta.type);
 
     sprintf(fifo, FIFO_CLI, pid);
     fd_cli = open(fifo, O_WRONLY);
     //snprintf(resposta.str, sizeof(resposta.str), "%s", mensagem);
     
-    strncpy(resposta.str, mensagem, sizeof(resposta.str) -1 );
-    resposta.str[sizeof(resposta.str) - 1] = '\0';
+    strncpy(msgs.conteudo.resposta.str, mensagem, sizeof(msgs.conteudo.resposta.str) -1 );
+    msgs.conteudo.resposta.str[sizeof(msgs.conteudo.resposta.str) - 1] = '\0';
     
-    if (write(fd_cli, &resposta, sizeof(RESPOSTA)) < 0) {
+    if (write(fd_cli, &msgs, sizeof(MSGSTRUCT)) < 0) {
         printf("[ERRO] Falha ao enviar mensagem para o cliente com PID %d.\n", pid);
     } else {
         printf("[INFO] Mensagem enviada para o cliente com PID %d: %s\n", pid, mensagem);
