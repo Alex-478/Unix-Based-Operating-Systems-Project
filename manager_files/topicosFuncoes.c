@@ -7,13 +7,8 @@ void listar_topicos_para_cliente(int fd_cliente) {
     MSGSTRUCT msgs;
     msgs.type = TIPO_RESPOSTA;
     
-    //RESPOSTA resposta = {.type = 1};       
-    //printf("[DEBUG]--Resposta type inteiro: %d", resposta.type);  
 
     if (num_topicos == 0) {
-        //snprintf(buffer, sizeof(buffer), "[INFO] Não existem tópicos no momento.\n");
-        //write(fd_cli, buffer, strlen(buffer)); // Envia a mensagem ao cliente
-
         snprintf(msgs.conteudo.resposta.str, sizeof(msgs.conteudo.resposta.str), "[INFO] Não existem tópicos no momento.\n");
         write(fd_cliente, &msgs, sizeof(MSGSTRUCT)); 
         return;
@@ -22,17 +17,10 @@ void listar_topicos_para_cliente(int fd_cliente) {
     for (int i = 0; i < num_topicos; i++) {
         strcpy(estado, topicos[i].bloqueado ? "bloqueado" : "desbloqueado");
 
-        // Concatena as informações no buffer
-        /*snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer),
-                 "Tópico: %s | Mensagens: %d | Estado: %s\n",
-                 topicos[i].nome, topicos[i].num_mensagens, estado);*/
-
         snprintf(buffer + strlen(buffer), sizeof(buffer) - strlen(buffer),
                  "\nTópico: %s | Mensagens: %d | Estado: %s\n",
                  topicos[i].nome, topicos[i].num_mensagens, estado);
 
-
-       
         if (strlen(buffer) >= sizeof(msgs.conteudo.resposta.str) - 1 || i == num_topicos - 1) {
             strcpy(msgs.conteudo.resposta.str, buffer);
             msgs.conteudo.resposta.str[sizeof(msgs.conteudo.resposta.str) - 1] = '\0';
@@ -40,7 +28,7 @@ void listar_topicos_para_cliente(int fd_cliente) {
             buffer[0] = '\0'; // Limpa o buffer
         }
     }
-    //write(fd_cli, buffer, strlen(buffer));
+
     write(fd_cliente, &msgs, sizeof(MSGSTRUCT));
 }
 void listar_mensagens_topico(const char* nome_topico) {

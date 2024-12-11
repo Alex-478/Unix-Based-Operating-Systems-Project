@@ -1,10 +1,11 @@
 #include "util.h"
 /*
 
-Quando alguem subscreve envia msg para todos os subscritos
+feed topics send 2x
 
+mesmo depois de sair utiliador aparece na lista
 
-
+msg sem estar subscrito incialmente, nao da output
 */
 
 
@@ -18,7 +19,7 @@ int main(int argc, char *argv[]){
     int fd_cli, n;
     fd_set fds;
    
-    // Verificar se o nome do usuário foi passado como argumento
+    // Verificar se o nome do user foi passado como argumento
     if (argc != 2) {
         printf("[ERRO] Uso: %s <nome_user>\n", argv[0]);
         exit(1);
@@ -36,13 +37,13 @@ int main(int argc, char *argv[]){
     mkfifo(fifo, 0600);
     fd_cli = open (fifo, O_RDWR);
 
-    // Enviar o nome do usuário ao manager
+    // Enviar o nome do user ao manager
     strcpy(p.user.nome, argv[1]);
     strcpy(p.str, "registar");
     p.user.pid = getpid();
     res = write(fd, &p, sizeof(PEDIDO));
     if (res != sizeof(PEDIDO)) {
-        printf("[ERRO] Falha ao enviar nome de usuário ao servidor.\n");
+        printf("[ERRO] Falha ao enviar nome de utilizador ao servidor.\n");
         close(fd);
         close(fd_cli);
         //unlink(fifo); ??

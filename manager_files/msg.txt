@@ -1,6 +1,0 @@
-carros Roi 308 testes
-carros Roi 308 dois
-carros Roi 308 alooo
-carros Roi 308 normaleeee
-animais alex 308 testes
-animais alex 308 gatos

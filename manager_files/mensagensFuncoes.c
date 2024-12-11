@@ -125,6 +125,8 @@ void guardar_mensagem(const char* nome_user, const char* topico, const char* men
                 printf("[ERRO] O tópico '%s' atingiu o limite de mensagens.\n", topico);
                 return;
             }
+            
+            
 
             // Armazena 
             int idx = topicos[i].num_mensagens;
@@ -150,7 +152,7 @@ void enviar_msg_subscritos(const char* nome_user, const char* topico, const char
     int fd;
     MSG_USER msg;
     
-    // = {.type = 2};
+    
     
     strncpy(msg.corpo, mensagem, sizeof(msg.corpo) - 1);
     msg.corpo[sizeof(msg.corpo) - 1] = '\0'; 
@@ -207,7 +209,7 @@ void processar_messagem_utilizador(PEDIDO p) {
     char comando_copia[TAM_MSG] ;
     strncpy(comando_copia, p.str, sizeof(comando_copia) - 1);
     comando_copia[sizeof(comando_copia) - 1] = '\0'; 
-    
+    char aviso[TAM_MSG];
     char* utilizador = p.user.nome;
     char* topico = NULL;       
     char* duracao_str = NULL;  
@@ -255,13 +257,34 @@ void processar_messagem_utilizador(PEDIDO p) {
     printf("Duração: %d\n", duracao);
     printf("Mensagem: %s\n", mensagem);
 
-    //Envia para Utilizadores subscritos nos topicos
-    enviar_msg_subscritos(utilizador,topico, mensagem);
-    
-    //Guarda msg
-    if(duracao != 0){
-        guardar_mensagem(utilizador,topico, mensagem, duracao);
+    bool permitirMSG = false;
+    //verifica subscricao e bloqueio
+    for (int i = 0; i < num_topicos; i++) {
+        if (strcmp(topicos[i].nome, topico) == 0) {
+            for (int j = 0; j < topicos[i].num_subscritores; j++) {
+                if (topicos[i].subscritores[j] == p.user.pid) {  
+                    if(topicos[i].bloqueado == 0)    
+                        permitirMSG = true;  
+                }
+            }   
+        }
     }
+
+    
+
+    //Envia para Utilizadores subscritos nos topicos
+    if(permitirMSG){
+        enviar_msg_subscritos(utilizador,topico, mensagem);
+        //Guarda msg
+        if(duracao != 0){
+            guardar_mensagem(utilizador,topico, mensagem, duracao);
+        }
+    }
+    if(!permitirMSG){
+        snprintf(aviso, sizeof(aviso),  "[INFO] Não se encontra subscrito ou Topico '%s' bloqueado .\n", topico);
+        enviar_resposta_cliente(p.user.pid, aviso);
+    }
+
 
    return;     
 }

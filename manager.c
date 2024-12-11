@@ -86,7 +86,7 @@ void *thread_le_pipe(void *pdata){
             //Tratar mensagem Cliente
             processar_palavras_utilizador(p, fifo);
         }
-        printf("[DEBUG] Ciclo thread pipe\n");
+       // printf("[DEBUG] Ciclo thread pipe\n");
 
     }while (*(data->pcontinuar)); //espera pelo quit da thread admin
 
@@ -130,7 +130,7 @@ void *thread_admin(void *pdata){
 }
 // Processo comnando admin
 void processar_palavras_admin(char str[TAM], char fifo[40]){
-    //RESPOSTA r = {.type = 1};
+    printf("DEBUG PALAVRAS ADMIN");
     MSGSTRUCT msgs;
     msgs.type = TIPO_RESPOSTA;   
     int res, fd_cli;
