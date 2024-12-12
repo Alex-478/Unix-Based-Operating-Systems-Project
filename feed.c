@@ -1,11 +1,18 @@
 #include "util.h"
-/*
+/* NOTAS: Projeto!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+[DEBUG]
 
-feed topics send 2x
+VARIAVEIS GLOBAIS....(ganhar coragem)
 
-mesmo depois de sair utiliador aparece na lista
+por vezes a dar quit (servidor) nao termina as threads todas, mas nao consigo replicar
+bug complicado possivelmente mutex - quando o user sai e depois o servidor termina
 
-msg sem estar subscrito incialmente, nao da output
+tem de ter confirmação de login no codigo ou pode ser so visual?
+
+ler ficheiro, sscanf esta bem?
+
+[prof]
+nao uso sinais nem alarmes
 */
 
 
@@ -66,7 +73,7 @@ int main(int argc, char *argv[]){
         if (n == -1 ) {
             printf("[ERRO] Select!\n");
         }
-        else if(n>0){ //ha dados.. onde?
+        else if(n>0){ //ha dados? Pode ser Teclado ou Pipe
             if(FD_ISSET(0, &fds)){      //select teclado
                 //scanf("%s",str);
                 fgets(str, sizeof(str), stdin);
@@ -140,7 +147,7 @@ int main(int argc, char *argv[]){
     
     close(fd);
     close(fd_cli);
-    printf("FIM\n");
+    //printf("FIM\n");
     exit(0);
 }
 

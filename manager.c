@@ -66,7 +66,7 @@ void *thread_monitorar_mensagens(void *pdata) {
         sleep(1); 
         //printf("[DEBUG]Atuliza Tempo mensagens\n");  
     }
-    printf("[DEBUG]Termina thread tempo\n");  
+    printf("[DEBUG]Termina thread tempo/mensagens[DEBUG]\n");  
     pthread_exit(NULL);
 }
 //Thread Espera comandos dos Utilizadores
@@ -90,7 +90,7 @@ void *thread_le_pipe(void *pdata){
 
     }while (*(data->pcontinuar)); //espera pelo quit da thread admin
 
-    printf("[DEBUG]Termina thread pipe\n");  
+    printf("[DEBUG] Termina thread ler pipe [DEBUG]\n");  
     pthread_exit(NULL);
 }
 //Thread Espera comandos do admin
@@ -125,12 +125,12 @@ void *thread_admin(void *pdata){
     snprintf(p.str, sizeof(p.str), "terminarLePipe");
     write (*(data->pfd), &p,sizeof(PEDIDO)); //envia para o manager
 
-    printf("[DEBUG] Termina thread admin\n");
+    printf("[DEBUG] Termina thread Admin-Teclado [DEBUG]\n");
     pthread_exit(NULL);
 }
 // Processo comnando admin
 void processar_palavras_admin(char str[TAM], char fifo[40]){
-    printf("DEBUG PALAVRAS ADMIN");
+    printf("[DEBUG] PALAVRAS ADMIN\n");
     MSGSTRUCT msgs;
     msgs.type = TIPO_RESPOSTA;   
     int res, fd_cli;
@@ -173,6 +173,8 @@ void processar_palavras_admin(char str[TAM], char fifo[40]){
                         if(utilizadores[i].ativo){
                             sprintf(fifo, FIFO_CLI, utilizadores[i].pid);
                             fd_cli = open(fifo, O_WRONLY);
+                            strcpy(msgs.conteudo.resposta.str, "Servidor Desligado\n");
+                            res = write( fd_cli, &msgs, sizeof(MSGSTRUCT));
                             strcpy(msgs.conteudo.resposta.str, "fim");
                             res = write( fd_cli, &msgs, sizeof(MSGSTRUCT));
                             close(fd_cli);

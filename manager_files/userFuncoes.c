@@ -71,6 +71,7 @@ int remover_user(const char* nome_user) {
     //printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
     MSGSTRUCT msgs;
     msgs.type = TIPO_RESPOSTA;
+    printf("[DEBUG]Entrou no remove user\n"); 
 
     //Verifica se esta registado
     for (int i = 0; i < num_users; i++) {
@@ -88,12 +89,14 @@ int remover_user(const char* nome_user) {
             utilizadores[i].ativo = 0;
             utilizadores[i].pid = 0;
               
-            printf("[INFO] Usuário '%s' removido.\n", nome_user);       
+            printf("[INFO] Utilizador '%s' removido.\n", nome_user);       
             
             for (int j = i; j < num_users - 1; j++) {
                 utilizadores[j] = utilizadores[j + 1];
             }
+
             num_users--;  
+            utilizadores[num_users].ativo = 0;
             pthread_mutex_unlock(&mutex_utilizadores); // mutex unlock
             //Informar todos os users conectados sobre a desconexao
             for (int j = 0; j < num_users; j++){

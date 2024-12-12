@@ -1,0 +1,7 @@
+carros alex 800 Bom carro que tu tens
+carros rui 900 Tens razao!!
+animais alex 750 Olhem o meu gato!
+animais alex 750 Aqui o que nao falta sao gatos.
+hobby alex 900 Apreciem a minha coleçao de puzzles
+hobby alex 900 Computador topo de gama, o que recomendam!
+hobby rui 900 Computador ASUS XPTO!!!

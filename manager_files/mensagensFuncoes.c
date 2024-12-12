@@ -23,11 +23,13 @@ void carregar_mensagens(const char* nome_ficheiro) {
         TOPICO tAux;
 
         // Lê os dados formatados
-      sscanf(linha, "%s %s %d %s[^\n]", 
-       tAux.nome,  
-       tAux.mensagens[0].utilizador,  
-       &tAux.mensagens[0].duracao,    
-        tAux.mensagens[0].corpo);    
+        sscanf(linha, "%s %s %d %[^\n]", 
+        tAux.nome,      
+        tAux.mensagens[0].utilizador,  
+        &tAux.mensagens[0].duracao,    
+            tAux.mensagens[0].corpo);    
+
+        printf("[DEBUG]CARREGAR.MESAGEM: %s\n", tAux.mensagens[0].corpo);
 
         // Cria o tópico, se necessário
         criarTopico(tAux.nome);

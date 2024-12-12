@@ -28,8 +28,6 @@ void listar_topicos_para_cliente(int fd_cliente) {
             buffer[0] = '\0'; // Limpa o buffer
         }
     }
-
-    write(fd_cliente, &msgs, sizeof(MSGSTRUCT));
 }
 void listar_mensagens_topico(const char* nome_topico) {
     // Verifica se o tópico existe
@@ -194,7 +192,7 @@ void subscreveTopico(const char* nome_topico, int pid_user){
                 strcpy(msgs.conteudo.msg_user.nome_topico, topicos[i].nome);
                 strcpy(msgs.conteudo.msg_user.utilizador, topicos[i].mensagens[k].utilizador);
                 strcpy(msgs.conteudo.msg_user.corpo, topicos[i].mensagens[k].corpo);
-                
+                printf("[DEBUG] MENSAGEM ANTES DE ENVIAR: %s \n", topicos[i].mensagens[k].corpo);
                 char fifo[40];
                 int fd;
                 snprintf(fifo, sizeof(fifo), FIFO_CLI, pid_user);
