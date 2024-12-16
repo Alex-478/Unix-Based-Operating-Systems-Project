@@ -192,7 +192,7 @@ void subscreveTopico(const char* nome_topico, int pid_user){
                 strcpy(msgs.conteudo.msg_user.nome_topico, topicos[i].nome);
                 strcpy(msgs.conteudo.msg_user.utilizador, topicos[i].mensagens[k].utilizador);
                 strcpy(msgs.conteudo.msg_user.corpo, topicos[i].mensagens[k].corpo);
-                printf("[DEBUG] MENSAGEM ANTES DE ENVIAR: %s \n", topicos[i].mensagens[k].corpo);
+                //printf("[DEBUG] MENSAGEM ANTES DE ENVIAR: %s \n", topicos[i].mensagens[k].corpo);
                 char fifo[40];
                 int fd;
                 snprintf(fifo, sizeof(fifo), FIFO_CLI, pid_user);
@@ -217,7 +217,7 @@ void criarTopico(const char* nome){
     // Verifica se o nome do tópico já existe ?? acho que nao ta funcional
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, nome) == 0) {
-            printf("[ERRO] O tópico '%s' já existe.\n", nome);
+            printf("[INFO] O tópico '%s' já existe.\n", nome);
             return;
         }
     }  

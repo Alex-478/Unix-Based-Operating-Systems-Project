@@ -75,10 +75,15 @@ void *thread_le_pipe(void *pdata){
     int res;
     char fifo[40];
     PEDIDO p;
+    bool aux = false;
 
-    do{
+
+    do{ 
+       if(aux){ 
         printf("ADMIN> ");
-        fflush(stdout);    
+        fflush(stdout);   
+        aux = true;
+        }
 
         res = read (*(data->pfd), &p, sizeof(PEDIDO) );
         if(res == sizeof(PEDIDO) && strcmp(p.str, "terminarLePipe") !=0 ){
@@ -86,7 +91,6 @@ void *thread_le_pipe(void *pdata){
             //Tratar mensagem Cliente
             processar_palavras_utilizador(p, fifo);
         }
-       // printf("[DEBUG] Ciclo thread pipe\n");
 
     }while (*(data->pcontinuar)); //espera pelo quit da thread admin
 
@@ -107,17 +111,12 @@ void *thread_admin(void *pdata){
         if (fgets(str, sizeof(str), stdin)) {
             str[strcspn(str, "\n")] = '\0'; 
             if (strlen(str) > 0) { 
-                printf("[DEBUG] Entrada: '%s'\n", str);
                 processar_palavras_admin(str, fifo);
             }
         } else {
         printf("[ERRO] Problema ao ler entrada ou EOF atingido.\n");
         break; 
         }
-
-
-        
-        //printf("[DEBUG]Ciclo thread admin.\n");    
     }while ( strcmp(str, "quit") !=0);
 
     *(data->pcontinuar) = 0;
@@ -130,7 +129,6 @@ void *thread_admin(void *pdata){
 }
 // Processo comnando admin
 void processar_palavras_admin(char str[TAM], char fifo[40]){
-    printf("[DEBUG] PALAVRAS ADMIN\n");
     MSGSTRUCT msgs;
     msgs.type = TIPO_RESPOSTA;   
     int res, fd_cli;
@@ -221,9 +219,8 @@ void processar_palavras_utilizador(PEDIDO p, char fifo[40]){
                     if (strcmp(palavras[0], "registar") == 0) {
                         adicionar_user(p.user.nome, p.user.pid);
                         }
-                    if (strcmp(palavras[0], "subscribe") == 0) { //?? se o comando for subscribe sem 2ªpalavra da Falta de Segmentação
+                    if (strcmp(palavras[0], "subscribe") == 0) { 
                         if(palavras[1] == NULL) {
-                            //printf("[DEBUG] Palavra 1: %s.\n", palavras[1]);
                             printf("[ERRO] Comando 'subscribe' requer um tópico.\n");
                             return;
                             }

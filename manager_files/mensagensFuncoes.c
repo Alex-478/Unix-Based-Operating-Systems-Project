@@ -7,16 +7,6 @@ void carregar_mensagens(const char* nome_ficheiro) {
         return;
     }
 
-    /*MENSAGEM_FICH msg_fich;
-    while (fread(&msg_fich, sizeof(MENSAGEM_FICH), 1, ficheiro) == 1) {
-        // Cria o tópico 
-        criarTopico(msg_fich.nome_topico);
-        // Adiciona a mensagem ao tópico
-        guardar_mensagem(msg_fich.utilizador,msg_fich.nome_topico, msg_fich.corpo, msg_fich.duracao);
-        printf("[INFO] Mensagem recuperada no tópico [%s]%s: %s\n", msg_fich.nome_topico, msg_fich.utilizador, msg_fich.corpo);
-        
-    }*/
-
 
     char linha[512];
     while (fgets(linha, sizeof(linha), ficheiro)) {
@@ -29,7 +19,7 @@ void carregar_mensagens(const char* nome_ficheiro) {
         &tAux.mensagens[0].duracao,    
             tAux.mensagens[0].corpo);    
 
-        printf("[DEBUG]CARREGAR.MESAGEM: %s\n", tAux.mensagens[0].corpo);
+        //printf("[DEBUG]CARREGAR.MESAGEM: %s\n", tAux.mensagens[0].corpo);
 
         // Cria o tópico, se necessário
         criarTopico(tAux.nome);
@@ -160,13 +150,15 @@ void enviar_msg_subscritos(const char* nome_user, const char* topico, const char
     msg.corpo[sizeof(msg.corpo) - 1] = '\0'; 
     strcpy(msg.nome_topico, topico);
     strcpy(msg.utilizador, nome_user);
+    
+    /*
     printf("[DEBUG] Entrou no enviar msg subscritos\n");
-
     printf("[DEBUG] MSG_USER:\n");
     printf("  Nome Tópico: %s\n", msg.nome_topico);
     printf("  Utilizador: %s\n", msg.utilizador);
     printf("  Corpo: %s\n", msg.corpo);
-    
+    */
+
     MSGSTRUCT msgs;
     msgs.type = TIPO_MSG_USER;
     msgs.conteudo.msg_user = msg;
@@ -217,8 +209,8 @@ void processar_messagem_utilizador(PEDIDO p) {
     char* duracao_str = NULL;  
     char* mensagem = NULL;     
 
-     printf("---[DEBUG]Mensagem Recebida---- %s\n", topico);
-    printf("MSG: %s\n", comando_copia);
+    //printf("---[DEBUG]Mensagem Recebida---- %s\n", topico);
+    //printf("MSG: %s\n", comando_copia);
 
     // Captura o tópico
     strtok(comando_copia, " ");// ignora palavra 'msg'

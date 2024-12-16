@@ -7,12 +7,6 @@ VARIAVEIS GLOBAIS....(ganhar coragem)
 por vezes a dar quit (servidor) nao termina as threads todas, mas nao consigo replicar
 bug complicado possivelmente mutex - quando o user sai e depois o servidor termina
 
-tem de ter confirmação de login no codigo ou pode ser so visual?
-
-ler ficheiro, sscanf esta bem?
-
-[prof]
-nao uso sinais nem alarmes
 */
 
 
