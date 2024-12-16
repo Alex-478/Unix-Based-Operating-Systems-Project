@@ -67,8 +67,7 @@ return;
 int remover_user(const char* nome_user) {
     int fd_cli, res;
     char fifo[40];
-    //RESPOSTA r = {.type = 1};       
-    //printf("[DEBUG]--Resposta type inteiro: %d", r.type);  
+
     MSGSTRUCT msgs;
     msgs.type = TIPO_RESPOSTA;
     printf("[DEBUG]Entrou no remove user\n"); 
@@ -82,7 +81,7 @@ int remover_user(const char* nome_user) {
             strcpy(msgs.conteudo.resposta.str, "exit");
             res = write( fd_cli, &msgs, sizeof(MSGSTRUCT));
             close(fd_cli);
-            //printf("ENVIEI... '%s' (%d)\n", r.str,res);
+  
             printf("[INFO] Disconectar: '%s'\n", utilizadores[i].nome);  
             //remover User
             pthread_mutex_lock(&mutex_utilizadores); //mutex lock

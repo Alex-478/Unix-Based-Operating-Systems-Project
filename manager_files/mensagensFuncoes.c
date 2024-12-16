@@ -46,28 +46,7 @@ void armazena_mensagens(const char* nome_ficheiro) {
 
     for (int i = 0; i < num_topicos; i++) {
         for (int j = 0; j < topicos[i].num_mensagens; j++) {
-            /*
-            MENSAGEM_FICH msg_fich;
-
-            //Preenche os dados
-            strcpy(msg_fich.utilizador, topicos[i].mensagens[j].utilizador);
-
-            strncpy(msg_fich.nome_topico, topicos[i].nome, sizeof(msg_fich.nome_topico) - 1);
-            msg_fich.nome_topico[sizeof(msg_fich.nome_topico) - 1] = '\0';
-
-            strncpy(msg_fich.corpo, topicos[i].mensagens[j].corpo, sizeof(msg_fich.corpo) - 1);
-            msg_fich.corpo[sizeof(msg_fich.corpo) - 1] = '\0';
-
-            time_t agora = time(NULL);
-            msg_fich.duracao = topicos[i].mensagens[j].duracao;
-            msg_fich.duracao = msg_fich.duracao - (agora - topicos[i].mensagens[j].timestamp);
-
-            //msg_fich.duracao = topicos[i].mensagens[j].duracao;
-            //msg_fich.timestamp = topicos[i].mensagens[j].timestamp;
-
-            //Escreve no ficheiro
-            fwrite(&msg_fich, sizeof(MENSAGEM_FICH), 1, ficheiro);
-            */
+            
             int duracao;    
             // Preenche os dados
             time_t agora = time(NULL);
@@ -101,7 +80,7 @@ void atualizar_mensagens() {
                 }
 
                 topicos[i].num_mensagens--; // Decrementa o contador de mensagens
-                j--; // Reajusta o índice para verificar a nova mensagem na posição
+                j--; // Ajusta o índice para verificar a nova mensagem na posição
                 pthread_mutex_unlock(&mutex_msg);
             }
         }
@@ -153,20 +132,10 @@ void enviar_msg_subscritos(const char* nome_user, const char* topico, const char
     strcpy(msg.nome_topico, topico);
     strcpy(msg.utilizador, nome_user);
     
-    /*
-    printf("[DEBUG] Entrou no enviar msg subscritos\n");
-    printf("[DEBUG] MSG_USER:\n");
-    printf("  Nome Tópico: %s\n", msg.nome_topico);
-    printf("  Utilizador: %s\n", msg.utilizador);
-    printf("  Corpo: %s\n", msg.corpo);
-    */
-
     MSGSTRUCT msgs;
     msgs.type = TIPO_MSG_USER;
     msgs.conteudo.msg_user = msg;
 
-    // Formata a mensagem para incluir o tópico
-    //snprintf(msg.corpo, sizeof(msg.corpo), "[%s]%s: %s", topico, nome_user, mensagem);
     // Percorre todos os tópicos para encontrar o correspondente
     for (int i = 0; i < num_topicos; i++) {
         if (strcmp(topicos[i].nome, topico) == 0) { // Verifica se é o tópico correto
@@ -210,9 +179,6 @@ void processar_messagem_utilizador(PEDIDO p) {
     char* topico = NULL;       
     char* duracao_str = NULL;  
     char* mensagem = NULL;     
-
-    //printf("---[DEBUG]Mensagem Recebida---- %s\n", topico);
-    //printf("MSG: %s\n", comando_copia);
 
     // Captura o tópico
     strtok(comando_copia, " ");// ignora palavra 'msg'
@@ -289,13 +255,10 @@ void enviar_resposta_cliente(int pid, const char* mensagem) { // !! alterar nome
     int fd_cli;              
     MSGSTRUCT msgs;
     msgs.type = TIPO_RESPOSTA;
-    //RESPOSTA resposta = {.type = 1};       
-    //printf("[DEBUG]--Resposta type inteiro: %d\n", resposta.type);
-
+ 
     sprintf(fifo, FIFO_CLI, pid);
     fd_cli = open(fifo, O_WRONLY);
-    //snprintf(resposta.str, sizeof(resposta.str), "%s", mensagem);
-    
+
     strncpy(msgs.conteudo.resposta.str, mensagem, sizeof(msgs.conteudo.resposta.str) -1 );
     msgs.conteudo.resposta.str[sizeof(msgs.conteudo.resposta.str) - 1] = '\0';
     

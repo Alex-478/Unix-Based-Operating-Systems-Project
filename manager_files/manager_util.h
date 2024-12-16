@@ -4,7 +4,7 @@
 typedef struct {
     int *pfd;
     int *pcontinuar;
-     
+
 } TDATA;
 
 typedef struct {
@@ -78,6 +78,3 @@ extern int num_topicos;
 extern pthread_mutex_t mutex_topicos; 
 extern pthread_mutex_t mutex_utilizadores;
 extern pthread_mutex_t mutex_msg;
-
-//pthread_mutex_lock(&mutex_utilizadores);
-//pthread_mutex_unlock(&mutex_topicos);

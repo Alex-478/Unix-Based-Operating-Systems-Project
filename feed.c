@@ -1,14 +1,4 @@
 #include "util.h"
-/* NOTAS: Projeto!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-[DEBUG]
-
-VARIAVEIS GLOBAIS....(ganhar coragem)
-
-por vezes a dar quit (servidor) nao termina as threads todas, mas nao consigo replicar
-bug complicado possivelmente mutex - quando o user sai e depois o servidor termina
-
-*/
-
 
 int main(int argc, char *argv[]){
     char str[TAM];
@@ -69,13 +59,10 @@ int main(int argc, char *argv[]){
         }
         else if(n>0){ //ha dados? Pode ser Teclado ou Pipe
             if(FD_ISSET(0, &fds)){      //select teclado
-                //scanf("%s",str);
+
                 fgets(str, sizeof(str), stdin);
                 str[strcspn(str, "\n")] = '\0';  // Remove o '\n' se presente
-                //printf("Dbug 1: '%s'\n", str);  // Debug ?? faz um \n a mais??
                 strcpy(p.str, str);
-        
- 
                 res = write (fd, &p,sizeof(PEDIDO)); //envia para o manager
                 if(res == sizeof(PEDIDO) ){
                     printf("[SEND] '%s' (%d)\n", p.str, res);  //Debug
@@ -83,39 +70,6 @@ int main(int argc, char *argv[]){
                 
             }
             else if(FD_ISSET(fd_cli, &fds)){
-                /*res = read(fd_cli, &type, sizeof(int));        //select pipe
-                if (res == sizeof(int)) {
-                printf("[DEBUG] leu inteiro: %d\n", type);
-                if(type == 1){
-                     res = read(fd_cli, &r, sizeof(RESPOSTA));
-                }
-                 if(type == 2){
-                     res = read(fd_cli, &m, sizeof(MSG_USER));
-                }} */
-               /*
-                char buffer[2048];
-                res = read(fd_cli, buffer, sizeof(buffer)); 
-                printf("[DEBUG] leu bufer\n");
-
-                if (res >= sizeof(int)) {
-                int type = *(int*)buffer; // Extraia o inteiro
-                printf("[DEBUG] leu inteiro: %d\n", type);
-                if (type == 1) {
-                    memcpy(&r, buffer, sizeof(RESPOSTA)); // Copia todos os bytes para a estrutura RESPOSTA
-                    printf("Recebi RESPOSTA: %s\n", r.str);
-                } else if (type == 2) {
-                    memcpy(&m, buffer, sizeof(MSG_USER)); // Copia todos os bytes para a estrutura MSG_USER
-                    printf("Recebi MSG_USER: %s\n", m.corpo);
-                    printf("[DEBUG] MSG_USER:\n");
-                    printf("  Nome Tópico: %s\n", m.nome_topico);
-                    printf("  Utilizador: %s\n", m.utilizador);
-                    printf("  Corpo: %s\n", m.corpo);
-                            //printf("RECEBI...\n '%s' (%d)\n", r.str, res);
-                        }
-                }
-                 buffer[0] = '\0';*/
-
-                //---------------------
                  
                 res = read(fd_cli, &mensagem_recebida, sizeof(MSGSTRUCT));
                 if (res > 0) {
@@ -127,10 +81,6 @@ int main(int argc, char *argv[]){
                     mensagem_recebida.conteudo.msg_user.nome_topico,
                     mensagem_recebida.conteudo.msg_user.utilizador,
                     mensagem_recebida.conteudo.msg_user.corpo);
-                    //printf("Recebi uma MSG_USER:\n");
-                    //printf("Topico: %s\n", mensagem_recebida.conteudo.msg_user.nome_topico);
-                    //printf("Utilizador: %s\n", mensagem_recebida.conteudo.msg_user.utilizador);
-                    //printf("Corpo: %s\n", mensagem_recebida.conteudo.msg_user.corpo);
                 }
                  } else {
                         perror("[FEED]Erro na leitura do pipe\n");

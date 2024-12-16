@@ -187,8 +187,6 @@ void subscreveTopico(const char* nome_topico, int pid_user){
             enviar_resposta_cliente(pid_user, mensagem);
             //Enviar mensagens Guardadas
             for(int k = 0; k < topicos[i].num_mensagens; k++ ){
-                //enviar_msg_subscritos(topicos[i].mensagens[k].utilizador ,topicos[i].nome, topicos[i].mensagens[k].corpo);
-                //!!
                 //enviar so para um user que subscreveu
                 strcpy(msgs.conteudo.msg_user.nome_topico, topicos[i].nome);
                 strcpy(msgs.conteudo.msg_user.utilizador, topicos[i].mensagens[k].utilizador);
@@ -222,8 +220,7 @@ void criarTopico(const char* nome){
             return;
         }
     }  
-    pthread_mutex_lock(&mutex_topicos);
-    //printf("[DEBUG] Variavel nome com: '%s'\n", nome);   
+    pthread_mutex_lock(&mutex_topicos); 
     strcpy(topicos[num_topicos].nome, nome);
     //printf("[DEBUG] Tópico '%s' criado com sucesso com num '%d'.\n", topicos[num_topicos].nome, num_topicos);
     topicos[num_topicos].num_mensagens = 0;

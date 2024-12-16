@@ -26,8 +26,8 @@
 
 
 typedef struct {
-    char nome[TAM]; //nome usuario quando executa o feed
-    int pid;    // PID do usuário
+    char nome[TAM]; //nome user quando executa o feed
+    int pid;    // PID do user
     int ativo;  // Flag: 1 = ativo, 0 = não ativo
 } UTILIZADOR;
 
@@ -37,12 +37,10 @@ typedef struct{
 }PEDIDO;
 
 typedef struct{
-        //const int type; // type 1
         char str[TAM_MSG]; //TAM
 }RESPOSTA;
 
 typedef struct{
-    //const int type; // type 2
     char nome_topico[TAM]; 
     char utilizador[TAM];
     char corpo[TAM_MSG];
