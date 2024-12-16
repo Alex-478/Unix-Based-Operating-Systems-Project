@@ -82,8 +82,8 @@ void *thread_le_pipe(void *pdata){
        if(aux){ 
         printf("ADMIN> ");
         fflush(stdout);   
-        aux = true;
         }
+        aux = true;
 
         res = read (*(data->pfd), &p, sizeof(PEDIDO) );
         if(res == sizeof(PEDIDO) && strcmp(p.str, "terminarLePipe") !=0 ){
@@ -117,7 +117,7 @@ void *thread_admin(void *pdata){
         printf("[ERRO] Problema ao ler entrada ou EOF atingido.\n");
         break; 
         }
-    }while ( strcmp(str, "quit") !=0);
+    }while ( strcmp(str, "close") !=0);
 
     *(data->pcontinuar) = 0;
     //atualiza o pipe para avançar a thread le pipe
@@ -166,14 +166,14 @@ void processar_palavras_admin(char str[TAM], char fifo[40]){
                 listar_mensagens_topico(tmpWords[1]); //?? incompleto, receber diferentes tipos de dados
             }
             //comando quit -- termina todos os clientes
-            if(strcmp(str, "quit") == 0){ 
+            if(strcmp(str, "close") == 0){ 
                 for(int i = 0; i<MAX_USERS; ++i){ 
                         if(utilizadores[i].ativo){
                             sprintf(fifo, FIFO_CLI, utilizadores[i].pid);
                             fd_cli = open(fifo, O_WRONLY);
                             strcpy(msgs.conteudo.resposta.str, "Servidor Desligado\n");
                             res = write( fd_cli, &msgs, sizeof(MSGSTRUCT));
-                            strcpy(msgs.conteudo.resposta.str, "fim");
+                            strcpy(msgs.conteudo.resposta.str, "exit");
                             res = write( fd_cli, &msgs, sizeof(MSGSTRUCT));
                             close(fd_cli);
                             //printf("ENVIEI... '%s' (%d)\n", r.str,res);
@@ -235,7 +235,7 @@ void processar_palavras_utilizador(PEDIDO p, char fifo[40]){
                             }
                         remove_subscricao_topico(palavras[1], p.user.pid);
                     }  
-                    if(strcmp(palavras[0], "fim") == 0){
+                    if(strcmp(palavras[0], "exit") == 0){
                         remover_user(p.user.nome);
                     }
                     return;

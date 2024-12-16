@@ -3,7 +3,8 @@
 //Estruturas Manager 
 typedef struct {
     int *pfd;
-    int *pcontinuar; 
+    int *pcontinuar;
+     
 } TDATA;
 
 typedef struct {

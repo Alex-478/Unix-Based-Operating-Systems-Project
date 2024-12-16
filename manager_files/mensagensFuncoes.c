@@ -24,11 +24,13 @@ void carregar_mensagens(const char* nome_ficheiro) {
         // Cria o tópico, se necessário
         criarTopico(tAux.nome);
 
+        printf("[INFO] Mensagem recuperada do ficheiro [%s]%s: %s\n",
+               tAux.nome, tAux.mensagens[0].utilizador, tAux.mensagens[0].corpo);
+
         // Adiciona a mensagem ao tópico
         guardar_mensagem(tAux.mensagens[0].utilizador, tAux.nome, tAux.mensagens[0].corpo, tAux.mensagens[0].duracao);
 
-        printf("[INFO] Mensagem recuperada no tópico [%s]%s: %s\n",
-               tAux.nome, tAux.mensagens[0].utilizador, tAux.mensagens[0].corpo);
+        
     }
 
     fclose(ficheiro);
@@ -129,7 +131,7 @@ void guardar_mensagem(const char* nome_user, const char* topico, const char* men
             topicos[i].mensagens[idx].timestamp = time(NULL); 
             topicos[i].num_mensagens++;
 
-            printf("[INFO] Mensagem armazenada no tópico '%s': %s (Duração: %d segundos)\n", topico, mensagem, duracao);
+            printf("[INFO] Mensagem guardada no tópico [%s]: %s (Duração: %d segundos)\n", topico, mensagem, duracao);
             pthread_mutex_unlock(&mutex_msg);
             return;
         }

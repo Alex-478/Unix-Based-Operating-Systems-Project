@@ -137,7 +137,7 @@ int main(int argc, char *argv[]){
                     }
         } 
         }    
-    }while(strcmp(mensagem_recebida.conteudo.resposta.str, "fim")!=0 && strcmp(p.str,"fim")!=0 ); //adicionar o fim do teclado do user
+    }while(strcmp(mensagem_recebida.conteudo.resposta.str, "exit")!=0 && strcmp(p.str,"exit")!=0 ); //adicionar o fim do teclado do user
     
     close(fd);
     close(fd_cli);

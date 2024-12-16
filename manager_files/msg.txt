@@ -1,7 +1,7 @@
-carros alex 704 Bom carro que tu tens
-carros rui 804 Tens razao!!
-animais alex 654 Olhem o meu gato!
-animais alex 654 Aqui o que nao falta sao gatos.
-hobby alex 804 Apreciem a minha coleçao de puzzles
-hobby alex 804 Computador topo de gama, o que recomendam!
-hobby rui 804 Computador ASUS XPTO!!!
+carros alex 278 Bom carro que tu tens
+carros rui 378 Tens razao!!
+animais alex 228 Olhem o meu gato!
+animais alex 228 Aqui o que nao falta sao gatos.
+hobby alex 378 Apreciem a minha coleçao de puzzles
+hobby alex 378 Computador topo de gama, o que recomendam!
+hobby rui 378 Computador ASUS XPTO!!!
