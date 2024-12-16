@@ -1,10 +1,10 @@
-carros rui 854 Tens razao!!
-hobby alex 1854 Apreciem a minha coleçao de puzzles
-hobby alex 354 Computador topo de gama, o que recomendam!
-hobby rui 1054 Computador ASUS XPTO!!!
-viagens ana 1354 Acabei de chegar de Paris, cidade maravilhosa!
-desporto joao 1054 Hoje fiz 10km a correr, recorde batido!
-tecnologia pedro 2854 Alguém já testou o novo iPhone?
-culinaria maria 654 Receita de bolo de chocolate perfeita, quem quer?
-jogos carlos 1754 Estou viciado no novo Zelda, incrível!
-livros sofia 1754 Alguém recomenda um bom thriller para o fim de semana?
+carros rui 838 Tens razao!!
+hobby alex 1838 Apreciem a minha coleçao de puzzles
+hobby alex 338 Computador topo de gama, o que recomendam!
+hobby rui 1038 Computador ASUS XPTO!!!
+viagens ana 1338 Acabei de chegar de Paris, cidade maravilhosa!
+desporto joao 1038 Hoje fiz 10km a correr, recorde batido!
+tecnologia pedro 2838 Alguém já testou o novo iPhone?
+culinaria maria 638 Receita de bolo de chocolate perfeita, quem quer?
+jogos carlos 1738 Estou viciado no novo Zelda, incrível!
+livros sofia 1738 Alguém recomenda um bom thriller para o fim de semana?

@@ -70,7 +70,7 @@ int remover_user(const char* nome_user) {
 
     MSGSTRUCT msgs;
     msgs.type = TIPO_RESPOSTA;
-    printf("[DEBUG]Entrou no remove user\n"); 
+    //printf("[DEBUG]Entrou no remove user\n"); 
 
     //Verifica se esta registado
     for (int i = 0; i < num_users; i++) {
