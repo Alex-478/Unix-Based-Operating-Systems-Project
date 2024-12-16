@@ -79,7 +79,7 @@ int remover_user(const char* nome_user) {
             //Enviar fim para terminar user
             sprintf(fifo, FIFO_CLI, utilizadores[i].pid);
             fd_cli = open(fifo, O_WRONLY);
-            strcpy(msgs.conteudo.resposta.str, "fim");
+            strcpy(msgs.conteudo.resposta.str, "exit");
             res = write( fd_cli, &msgs, sizeof(MSGSTRUCT));
             close(fd_cli);
             //printf("ENVIEI... '%s' (%d)\n", r.str,res);

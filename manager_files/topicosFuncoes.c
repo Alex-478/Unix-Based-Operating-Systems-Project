@@ -145,7 +145,8 @@ void remove_subscricao_topico(const char* nome_topico, int pid_user) {
                     return;
                 }
             }
-
+            snprintf(mensagem, sizeof(mensagem), "[INFO] Não se encontra subscrito no tópico '%s'.\n", nome_topico);
+            enviar_resposta_cliente(pid_user, mensagem);
             // Se o User não está subscrito
             printf("[ERRO] User (PID: %d) não está subscrito no tópico '%s'.\n", pid_user, nome_topico);
             return;
