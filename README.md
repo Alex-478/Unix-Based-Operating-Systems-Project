@@ -1,4 +1,5 @@
-# Projeto de Sistema de Mensagens
+# **Sistemas Operativos 24/25 – Plataforma de Mensagens**
+Projeto de Sistema de Mensagens
 
 Este projeto implementa um sistema de mensagens assíncrono em C que permite que diferentes clientes se conectem e interajam com tópicos e mensagens persistentes. O sistema é dividido em duas partes principais: o **Manager**, responsável pela coordenação de todas as mensagens e usuários, e o **Feed**, que é a interface de interação do usuário com o sistema.
 
@@ -39,20 +40,13 @@ O **Feed** é a interface cliente que permite aos usuários interagirem com o si
    - Envia comandos ao servidor para se registrar, enviar mensagens, subscrever ou sair de tópicos, entre outras interações.
 
 ## Como Utilizar o Projeto
+## **Como Compilar e Executar o Projeto**
 
-### Compilação
-Para compilar o **Manager** e o **Feed**, use os seguintes comandos:
-```sh
-make
-```
-
-```sh
-# Compilar o Manager
-gcc manager.c mensagensFuncoes.c topicosFuncoes.c userFuncoes.c -o manager -lpthread
-
-# Compilar o Feed
-gcc feed.c -o feed
-```
+*   **Requisitos:** Ambiente Unix (Linux) e um compilador C.
+*   **Compilação:** Utilize o `makefile` fornecido para compilar os programas. O `makefile` deve ter os targets "all", "feed", "manager" e "clean" [17].
+    ```bash
+    make all
+    ```
 
 ### Execução
 1. Primeiro, execute o **Manager** para iniciar o servidor:
@@ -67,9 +61,12 @@ gcc feed.c -o feed
    ```
    Onde `<nome_usuario>` é o nome que identifica o usuário no sistema.
 
-### Funcionalidades
-- **Manager**: Executa e gerencia os tópicos e usuários, possibilitando a administração dos tópicos e mensagens.
-- **Feed**: Interface do usuário que permite a comunicação com o servidor, incluindo o envio de mensagens, subscrição de tópicos e recebimento de atualizações.
+## **Funcionalidades**
+*   **Registo de utilizadores:** Os utilizadores registam-se com um username único [3].
+*   **Tópicos:** Criação e gestão de tópicos de mensagens [4].
+*   **Mensagens:** Envio de mensagens persistentes e não persistentes para tópicos [5]. As mensagens persistentes são armazenadas por um tempo limitado [6].
+*   **Subscrição:** Os utilizadores podem subscrever tópicos para receber mensagens [7].
+*   **Administração:** O administrador pode listar utilizadores, remover utilizadores e bloquear/desbloquear tópicos [8-10].
 
 ## Considerações
 - **Comunicação**: A comunicação entre Manager e Feed é feita através de **FIFOs**, que permitem a troca de informações de maneira assíncrona.
@@ -87,3 +84,22 @@ gcc feed.c -o feed
 |-- Makefile (opcional)
 ```
 
+## **Utilização**
+
+*   **Cliente (Feed):**
+    *   `topics`: Lista os tópicos existentes [18].
+    *   `msg <topico> <duração> <mensagem>`: Envia uma mensagem para um tópico [18]. A duração define se a mensagem é persistente (duração > 0) [19].
+    *   `subscribe <topico>`: Subscreve um tópico [19].
+    *   `unsubscribe <topico>`: Remove a subscrição de um tópico [20].
+    *   `exit`: Sai do programa `feed` [20].
+*   **Administrador (Manager):**
+    *   `users`: Lista os utilizadores conectados [21].
+    *   `remove <username>`: Remove um utilizador [9].
+    *   `topics`: Lista os tópicos existentes [9].
+    *   `show <topico>`: Mostra as mensagens de um tópico [9].
+    *   `lock <topico>`: Bloqueia um tópico [10].
+    *   `unlock <topico>`: Desbloqueia um tópico [10].
+    *   `close`: Encerra a plataforma [10].
+
+## **Autores**
+* Alexandre Moreira
