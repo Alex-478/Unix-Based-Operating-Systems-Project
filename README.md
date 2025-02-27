@@ -103,3 +103,4 @@ O **Feed** é a interface cliente que permite aos usuários interagirem com o si
 
 ## **Autores**
 * Alexandre Moreira
+* Rui Monteiro
